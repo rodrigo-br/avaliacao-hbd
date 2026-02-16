@@ -1,0 +1,132 @@
+{
+  "avaliacoes": {
+    "teste": {
+      "comportamento": [
+        {
+          "nome": "Frequência e pontualidade",
+          "valor": 5
+        },
+        {
+          "nome": "Atenção e foco em aula",
+          "valor": 5
+        },
+        {
+          "nome": "Abertura para aprender e corrigir",
+          "valor": 5
+        },
+        {
+          "nome": "Interação com colegas",
+          "valor": 5
+        }
+      ],
+      "conexao": [
+        {
+          "nome": "Conexão com o par",
+          "valor": 2
+        },
+        {
+          "nome": "Clareza na condução/resposta",
+          "valor": 2
+        },
+        {
+          "nome": "Sensibilidade ao movimento do par",
+          "valor": 2
+        },
+        {
+          "nome": "Adaptação a diferentes pares",
+          "valor": 2
+        }
+      ],
+      "dados": {
+        "dataAvaliacao": "23/01/23",
+        "modalidade": "Samba Rock",
+        "nivel": "Laranja",
+        "nomeAluno": "Rodrigoão",
+        "periodoAvaliado": "Janeiro",
+        "professor": "Tais",
+        "turma": "Terça"
+      },
+      "evolucao": [
+        {
+          "nome": "Pontos fortes observados",
+          "valor": "ponto forte"
+        },
+        {
+          "nome": "Pontos a desenvolver",
+          "valor": "ponto desenvolver"
+        }
+      ],
+      "expressao": [
+        {
+          "nome": "Expressão corporal",
+          "valor": 4
+        },
+        {
+          "nome": "Confiança ao dançar",
+          "valor": 4
+        },
+        {
+          "nome": "Entrega emocional/presença",
+          "valor": 4
+        }
+      ],
+      "feedback": [
+        {
+          "nome": "Feedback",
+          "valor": "feedback recebido"
+        }
+      ],
+      "movimentos": [
+        {
+          "nome": "Execução dos passos básicos",
+          "valor": 3
+        },
+        {
+          "nome": "Execução de giros",
+          "valor": 3
+        },
+        {
+          "nome": "Fluidez nos movimentos",
+          "valor": 3
+        },
+        {
+          "nome": "Memorização das sequências",
+          "valor": 3
+        }
+      ],
+      "sugestoes": {
+        "observacoes": "observacao observada",
+        "selecionadas": [
+          "Avançar de nível",
+          "Pratica social/baile"
+        ]
+      },
+      "tecnica": [
+        {
+          "nome": "Postura e alinhamento corporal",
+          "valor": 1
+        },
+        {
+          "nome": "Coordenação motora",
+          "valor": 1
+        },
+        {
+          "nome": "Consciência corporal",
+          "valor": 1
+        },
+        {
+          "nome": "Base e transferência de peso",
+          "valor": 1
+        },
+        {
+          "nome": "Equilíbrio",
+          "valor": 1
+        },
+        {
+          "nome": "Musicalidade (tempo e ritmo)",
+          "valor": 1
+        }
+      ]
+    }
+  }
+}
