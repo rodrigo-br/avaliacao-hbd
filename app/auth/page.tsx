@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { checkId, createPassword, login, requestReset } from "@/lib/auth"
+import { LogoIcon } from "@/components/logo-icon"
 
 type AuthStep = "check-id" | "login" | "create-password" | "not-found" | "reset-requested"
 
@@ -149,10 +150,13 @@ export default function AuthPage() {
             <div className="relative z-10 w-full max-w-[400px] animate-fade-in">
                 <div className="rounded-3xl bg-card/40 backdrop-blur-xl border border-border/30 p-8 shadow-2xl shadow-primary/5 space-y-6">
                     {/* Logo */}
-                    <div className="text-center space-y-1">
-                        <p className="text-3xl">⚔️</p>
-                        <h1 className="text-lg font-bold text-foreground">Donzelord</h1>
-                        <p className="text-xs text-muted-foreground">Área do Aluno</p>
+                    <div className="flex flex-col items-center text-center space-y-2">
+                        <div className="relative scale-150 mb-4 transition-transform duration-500">
+                            <LogoIcon />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            Área do Aluno
+                        </p>
                     </div>
 
                     {/* ── Step: Check ID ─────────────────── */}
