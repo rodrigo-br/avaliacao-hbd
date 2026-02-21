@@ -18,9 +18,10 @@ interface Sugestoes {
 interface ActionButtonsProps {
   feedback: FeedbackItem[]
   sugestoes: Sugestoes
+  professor?: string
 }
 
-export function ActionButtons({ feedback, sugestoes }: ActionButtonsProps) {
+export function ActionButtons({ feedback, sugestoes, professor }: ActionButtonsProps) {
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
   const [missionModalOpen, setMissionModalOpen] = useState(false)
 
@@ -50,6 +51,7 @@ export function ActionButtons({ feedback, sugestoes }: ActionButtonsProps) {
         open={feedbackModalOpen}
         onClose={() => setFeedbackModalOpen(false)}
         feedbackList={feedback}
+        professor={professor}
       />
       <MissionModal
         open={missionModalOpen}

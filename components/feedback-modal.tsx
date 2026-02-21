@@ -13,9 +13,10 @@ interface FeedbackModalProps {
     open: boolean
     onClose: () => void
     feedbackList: FeedbackItem[]
+    professor?: string
 }
 
-export function FeedbackModal({ open, onClose, feedbackList }: FeedbackModalProps) {
+export function FeedbackModal({ open, onClose, feedbackList, professor }: FeedbackModalProps) {
     const handleKeyDown = useCallback(
         (e: KeyboardEvent) => {
             if (e.key === "Escape") onClose()
@@ -70,24 +71,33 @@ export function FeedbackModal({ open, onClose, feedbackList }: FeedbackModalProp
                 </div>
 
                 {/* Content */}
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                     {feedbackList.map((item, index) => (
                         <div
                             key={index}
-                            className="bg-orange-50 rounded-2xl p-5 relative"
+                            className="bg-orange-50/50 border border-orange-100/50 rounded-2xl p-5 relative group transition-colors hover:bg-orange-50"
                         >
                             {/* Decorative quote icon */}
-                            <Quote className="absolute top-3 right-3 w-5 h-5 text-orange-200" />
+                            <Quote className="absolute top-3 right-3 w-5 h-5 text-orange-200/50 group-hover:text-orange-200" />
 
                             {item.nome && item.nome !== "Feedback" && (
-                                <p className="text-xs font-semibold text-orange-400 uppercase tracking-wider mb-2">
+                                <p className="text-[10px] font-bold text-orange-400 uppercase tracking-widest mb-3">
                                     {item.nome}
                                 </p>
                             )}
 
-                            <p className="text-sm text-gray-700 leading-relaxed italic">
+                            <p className="text-sm text-gray-700 leading-relaxed italic mb-4">
                                 &ldquo;{item.valor}&rdquo;
                             </p>
+
+                            {professor && (
+                                <div className="flex justify-end items-center gap-2 mt-4 pt-3 border-t border-orange-200/30">
+                                    <div className="w-4 h-px bg-orange-300" />
+                                    <p className="text-[11px] font-bold text-orange-600/80 uppercase tracking-widest">
+                                        {professor}
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     ))}
 

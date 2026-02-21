@@ -21,9 +21,10 @@ interface ProfileSectionProps {
     subAttributesMap: Record<string, SubAttribute[]>
     nomeAluno: string
     nivel: string
+    cpf: string
 }
 
-export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel }: ProfileSectionProps) {
+export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel, cpf }: ProfileSectionProps) {
     const containerRef = useRef<HTMLDivElement>(null)
     const profileRef = useRef<HTMLDivElement>(null)
     const cardRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -152,7 +153,7 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel 
 
                     {/* Profile Center */}
                     <div ref={profileRef} className="py-2 z-20">
-                        <ProfileCard nomeAluno={nomeAluno} nivel={nivel} />
+                        <ProfileCard nomeAluno={nomeAluno} nivel={nivel} cpf={cpf} />
                     </div>
 
                     {/* Bottom row attributes */}
