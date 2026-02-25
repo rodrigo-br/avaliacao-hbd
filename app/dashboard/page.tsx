@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { onAuthChange, emailToCpf, logout } from "@/lib/auth"
 import { getFirebaseDb } from "@/lib/firebase-app"
@@ -18,6 +18,36 @@ import { LogoIcon } from "@/components/logo-icon"
 import { LogOut } from "lucide-react"
 
 type DashboardState = "loading" | "ready" | "no-data"
+
+// Categories that are locked for "Branco" level students
+const BRANCO_LOCKED_CATEGORIES = new Set(["Técnica", "Movimentos", "Comportamento"])
+
+// Placeholder sub-attributes used for locked categories to prevent data leaks via DevTools
+const PLACEHOLDER_SUB_ATTRIBUTES: Record<string, { name: string; rating: number }[]> = {
+    "Técnica": [
+        { name: "Postura e alinhamento corporal", rating: 3 },
+        { name: "Coordenação motora", rating: 3 },
+        { name: "Consciência corporal", rating: 3 },
+        { name: "Base e transferência de peso", rating: 3 },
+        { name: "Equilíbrio", rating: 3 },
+        { name: "Musicalidade (tempo e ritmo)", rating: 3 },
+    ],
+    "Movimentos": [
+        { name: "Execução dos passos básicos", rating: 3 },
+        { name: "Execução de giros", rating: 3 },
+        { name: "Fluidez nos movimentos", rating: 3 },
+        { name: "Memorização das sequências", rating: 3 },
+    ],
+    "Comportamento": [
+        { name: "Frequência e pontualidade", rating: 3 },
+        { name: "Atenção e foco em aula", rating: 3 },
+        { name: "Abertura para aprender e corrigir", rating: 3 },
+        { name: "Interação com colegas", rating: 3 },
+    ],
+}
+
+const PLACEHOLDER_FEEDBACK = [{ nome: "Feedback", valor: "Continue praticando e evoluindo. Seu feedback detalhado estará disponível no próximo nível." }]
+const PLACEHOLDER_SUGESTOES = { observacoes: "", selecionadas: ["Continuar praticando"] }
 
 export default function DashboardPage() {
     const router = useRouter()
@@ -101,9 +131,33 @@ export default function DashboardPage() {
 
     // ── Ready ────────────────────────────────────────
 
-    const attributes = mapAvaliacaoParaAttributes(avaliacao)
-    const subAttributesMap = mapSubAttributes(avaliacao)
+    const isBranco = avaliacao.dados.nivel === "Branco"
+
+    // For "Branco" level: replace real star values with placeholders for locked categories
+    const attributes = mapAvaliacaoParaAttributes(avaliacao).map((attr) => {
+        if (isBranco && BRANCO_LOCKED_CATEGORIES.has(attr.title)) {
+            return { ...attr, stars: 3 } // placeholder star value
+        }
+        return attr
+    })
+
+    // For "Branco" level: replace real sub-attributes with placeholders
+    const realSubAttributes = mapSubAttributes(avaliacao)
+    const subAttributesMap = isBranco
+        ? Object.fromEntries(
+            Object.entries(realSubAttributes).map(([key, value]) =>
+                BRANCO_LOCKED_CATEGORIES.has(key)
+                    ? [key, PLACEHOLDER_SUB_ATTRIBUTES[key] ?? value]
+                    : [key, value]
+            )
+        )
+        : realSubAttributes
+
     const { pontosFortes, pontosDesenvolver } = mapEvolucao(avaliacao)
+
+    // For "Branco" level: use placeholder feedback and sugestões
+    const feedbackData = isBranco ? PLACEHOLDER_FEEDBACK : (avaliacao.feedback ?? [])
+    const sugestoesData = isBranco ? PLACEHOLDER_SUGESTOES : (avaliacao.sugestoes ?? { observacoes: "", selecionadas: [] })
 
     return (
         <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-8">
@@ -136,10 +190,11 @@ export default function DashboardPage() {
                             nomeAluno={avaliacao.dados.nomeAluno}
                             nivel={avaliacao.dados.nivel}
                             cpf={cpf}
+                            lockedCategories={isBranco ? BRANCO_LOCKED_CATEGORIES : undefined}
                         />
                     </section>
 
-                    {/* Bottom Card - Feedback */}
+                    {/* Bottom Card - Feedback (Evolução - always visible) */}
                     <section className="mb-6" aria-label="Feedback do aluno">
                         <BottomCard
                             pontosFortes={pontosFortes}
@@ -150,9 +205,10 @@ export default function DashboardPage() {
                     {/* Action Buttons */}
                     <section aria-label="Acoes">
                         <ActionButtons
-                            feedback={avaliacao.feedback ?? []}
-                            sugestoes={avaliacao.sugestoes ?? { observacoes: "", selecionadas: [] }}
-                            professor={avaliacao.dados.professor}
+                            feedback={feedbackData}
+                            sugestoes={sugestoesData}
+                            professor={isBranco ? undefined : avaliacao.dados.professor}
+                            locked={isBranco}
                         />
                     </section>
                 </div>

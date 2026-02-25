@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback } from "react"
 import { createPortal } from "react-dom"
-import { Star, X } from "lucide-react"
+import { Star, X, Lock } from "lucide-react"
 
 interface SubAttribute {
     name: string
@@ -14,9 +14,10 @@ interface AttributeModalProps {
     onClose: () => void
     title: string
     attributes: SubAttribute[]
+    locked?: boolean
 }
 
-export function AttributeModal({ open, onClose, title, attributes }: AttributeModalProps) {
+export function AttributeModal({ open, onClose, title, attributes, locked = false }: AttributeModalProps) {
     // Close on ESC key
     const handleKeyDown = useCallback(
         (e: KeyboardEvent) => {
@@ -64,40 +65,56 @@ export function AttributeModal({ open, onClose, title, attributes }: AttributeMo
                 </button>
 
                 {/* Title */}
-                <h2 className="text-lg font-bold text-gray-800 text-center mb-5 tracking-wide">
+                <h2 className="text-lg font-bold text-gray-800 text-center mb-5 tracking-wide flex items-center justify-center gap-2">
                     {title}
+                    {locked && <Lock className="w-4 h-4 text-gray-400" />}
                 </h2>
 
                 {/* Content Card */}
-                <div className="bg-orange-50 rounded-2xl p-4 space-y-0">
-                    {attributes.map((attr, index) => (
-                        <div
-                            key={attr.name}
-                            className={`flex items-center justify-between py-3 ${index < attributes.length - 1 ? "border-b border-gray-200/80" : ""
-                                }`}
-                        >
-                            {/* Attribute Name */}
-                            <span className="text-sm font-medium text-gray-700">
-                                {attr.name}
-                            </span>
+                <div className="relative">
+                    <div className={`bg-orange-50 rounded-2xl p-4 space-y-0 ${locked ? "select-none" : ""}`}>
+                        {attributes.map((attr, index) => (
+                            <div
+                                key={attr.name}
+                                className={`flex items-center justify-between py-3 ${index < attributes.length - 1 ? "border-b border-gray-200/80" : ""
+                                    }`}
+                            >
+                                {/* Attribute Name */}
+                                <span className="text-sm font-medium text-gray-700">
+                                    {attr.name}
+                                </span>
 
-                            {/* Stars */}
-                            <div className="flex items-center gap-0.5">
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                    <Star
-                                        key={i}
-                                        className={`w-4 h-4 transition-colors duration-200 ${i < attr.rating
+                                {/* Stars */}
+                                <div className="flex items-center gap-0.5">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                        <Star
+                                            key={i}
+                                            className={`w-4 h-4 transition-colors duration-200 ${i < attr.rating
                                                 ? "fill-orange-400 text-orange-400"
                                                 : "fill-none text-gray-300"
-                                            }`}
-                                    />
-                                ))}
+                                                }`}
+                                        />
+                                    ))}
+                                </div>
                             </div>
+                        ))}
+                    </div>
+
+                    {/* Locked overlay on content */}
+                    {locked && (
+                        <div className="absolute inset-0 bg-white/30 backdrop-blur-[3px] rounded-2xl flex flex-col items-center justify-center gap-2">
+                            <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                                <Lock className="w-5 h-5 text-gray-400" />
+                            </div>
+                            <p className="text-sm font-bold text-black uppercase tracking-wider text-center px-4">
+                                Contate a secretaria da escola para desbloquear
+                            </p>
                         </div>
-                    ))}
+                    )}
                 </div>
             </div>
         </div>,
         document.body
     )
 }
+

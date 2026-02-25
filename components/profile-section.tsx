@@ -22,9 +22,10 @@ interface ProfileSectionProps {
     nomeAluno: string
     nivel: string
     cpf: string
+    lockedCategories?: Set<string>
 }
 
-export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel, cpf }: ProfileSectionProps) {
+export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel, cpf, lockedCategories = new Set() }: ProfileSectionProps) {
     const containerRef = useRef<HTMLDivElement>(null)
     const profileRef = useRef<HTMLDivElement>(null)
     const cardRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -35,12 +36,14 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
     const [modalOpen, setModalOpen] = useState(false)
     const [modalTitle, setModalTitle] = useState("")
     const [modalAttributes, setModalAttributes] = useState<SubAttribute[]>([])
+    const [modalLocked, setModalLocked] = useState(false)
 
     const handleCardClick = (title: string) => {
         const subAttrs = subAttributesMap[title]
         if (subAttrs) {
             setModalTitle(title)
             setModalAttributes(subAttrs)
+            setModalLocked(lockedCategories.has(title))
             setModalOpen(true)
         }
     }
@@ -124,6 +127,7 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
                                 stars={attributes[4].stars}
                                 delay={attributes[4].delay}
                                 onClick={() => handleCardClick(attributes[4].title)}
+                                locked={lockedCategories.has(attributes[4].title)}
                             />
                         </div>
                     </div>
@@ -137,6 +141,7 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
                                 stars={attributes[0].stars}
                                 delay={attributes[0].delay}
                                 onClick={() => handleCardClick(attributes[0].title)}
+                                locked={lockedCategories.has(attributes[0].title)}
                             />
                         </div>
 
@@ -147,6 +152,7 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
                                 stars={attributes[1].stars}
                                 delay={attributes[1].delay}
                                 onClick={() => handleCardClick(attributes[1].title)}
+                                locked={lockedCategories.has(attributes[1].title)}
                             />
                         </div>
                     </div>
@@ -165,6 +171,7 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
                                 stars={attributes[2].stars}
                                 delay={attributes[2].delay}
                                 onClick={() => handleCardClick(attributes[2].title)}
+                                locked={lockedCategories.has(attributes[2].title)}
                             />
                         </div>
 
@@ -175,6 +182,7 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
                                 stars={attributes[3].stars}
                                 delay={attributes[3].delay}
                                 onClick={() => handleCardClick(attributes[3].title)}
+                                locked={lockedCategories.has(attributes[3].title)}
                             />
                         </div>
                     </div>
@@ -187,6 +195,7 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
                 onClose={() => setModalOpen(false)}
                 title={modalTitle}
                 attributes={modalAttributes}
+                locked={modalLocked}
             />
         </>
     )

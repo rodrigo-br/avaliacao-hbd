@@ -42,6 +42,11 @@ export function ProfileCard({ nomeAluno, nivel, cpf }: ProfileCardProps) {
   }, [cpf])
 
   const levelConfigs: Record<string, { glow: string; gradient: string; text: string }> = {
+    "Branco": {
+      glow: "255, 255, 255",
+      gradient: "from-white to-gray-200",
+      text: "text-white",
+    },
     "Verde": {
       glow: "34, 197, 94",
       gradient: "from-green-500 to-emerald-400",

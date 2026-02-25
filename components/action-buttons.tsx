@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MessageCircle, Swords } from "lucide-react"
+import { MessageCircle, Swords, Lock } from "lucide-react"
 import { FeedbackModal } from "@/components/feedback-modal"
 import { MissionModal } from "@/components/mission-modal"
 
@@ -19,9 +19,10 @@ interface ActionButtonsProps {
   feedback: FeedbackItem[]
   sugestoes: Sugestoes
   professor?: string
+  locked?: boolean
 }
 
-export function ActionButtons({ feedback, sugestoes, professor }: ActionButtonsProps) {
+export function ActionButtons({ feedback, sugestoes, professor, locked = false }: ActionButtonsProps) {
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false)
   const [missionModalOpen, setMissionModalOpen] = useState(false)
 
@@ -35,6 +36,7 @@ export function ActionButtons({ feedback, sugestoes, professor }: ActionButtonsP
         >
           <MessageCircle className="w-4 h-4" />
           Ver Feedback do Mestre
+          {locked && <Lock className="w-3.5 h-3.5 text-secondary-foreground/50" />}
         </button>
         <button
           className="flex-1 flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-primary to-orange-500 px-5 py-3 text-sm font-bold text-primary-foreground uppercase tracking-wide shadow-lg shadow-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/50 hover:scale-105 active:scale-95"
@@ -43,6 +45,7 @@ export function ActionButtons({ feedback, sugestoes, professor }: ActionButtonsP
         >
           <Swords className="w-4 h-4" />
           Minha Próxima Missão
+          {locked && <Lock className="w-3.5 h-3.5 text-primary-foreground/50" />}
         </button>
       </div>
 
@@ -52,12 +55,15 @@ export function ActionButtons({ feedback, sugestoes, professor }: ActionButtonsP
         onClose={() => setFeedbackModalOpen(false)}
         feedbackList={feedback}
         professor={professor}
+        locked={locked}
       />
       <MissionModal
         open={missionModalOpen}
         onClose={() => setMissionModalOpen(false)}
         sugestoes={sugestoes}
+        locked={locked}
       />
     </>
   )
 }
+
