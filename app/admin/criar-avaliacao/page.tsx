@@ -65,7 +65,7 @@ const SUGESTOES_OPCOES = [
     "Reforço técnico",
 ]
 
-const MODALIDADES = ["Forró", "Samba Rock", "Sertanejo", "Zouk", "Bolero", "Salsa", "Bachata"]
+const MODALIDADES = ["Forró", "Gafieira", "Samba Rock", "Sertanejo", "Zouk", "Bolero", "Salsa", "Bachata"]
 const NIVEIS = ["Branco", "Verde", "Laranja", "Lilás", "Azul", "Marrom", "Preto"]
 const TURMAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
 const PERIODOS = [
