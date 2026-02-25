@@ -7,7 +7,7 @@ import { getFirebaseDb } from "@/lib/firebase-app"
 import { ref, get } from "firebase/database"
 import { calcularMedia, type Avaliacao } from "@/lib/firebase"
 import { LogoIcon } from "@/components/logo-icon"
-import { LogOut, Shield, Eye, Users, Search, Star } from "lucide-react"
+import { LogOut, Shield, Eye, Users, Search, Star, Plus } from "lucide-react"
 
 interface AvaliacaoComCpf {
     cpf: string
@@ -163,6 +163,13 @@ export default function AdminDashboardPage() {
                                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Avaliações</p>
                             </div>
                         </div>
+                        <button
+                            onClick={() => router.push("/admin/criar-avaliacao")}
+                            className="rounded-2xl bg-gradient-to-r from-primary to-orange-500 px-5 py-3 shadow-lg shadow-primary/20 flex items-center gap-2 text-sm font-semibold text-primary-foreground transition-all duration-200 hover:brightness-110 hover:scale-[1.02] active:scale-[0.98]"
+                        >
+                            <Plus className="w-4 h-4" />
+                            Criar Avaliação
+                        </button>
                     </div>
 
                     {/* Search */}
