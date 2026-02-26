@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { isAdminAuthenticated, logoutAdmin } from "@/lib/admin-auth"
+import { isAdminAuthenticated, logoutAdmin, getAdminCredentials } from "@/lib/admin-auth"
 import { getFirebaseDb } from "@/lib/firebase-app"
 import { ref, get } from "firebase/database"
 import { calcularMedia, type Avaliacao } from "@/lib/firebase"
 import { LogoIcon } from "@/components/logo-icon"
-import { LogOut, Shield, Eye, Users, Search, Star, Plus } from "lucide-react"
+import { LogOut, Shield, Eye, Users, Search, Star, Plus, KeyRound } from "lucide-react"
 
 interface AvaliacaoComCpf {
     cpf: string
@@ -20,6 +20,10 @@ export default function AdminDashboardPage() {
     const [avaliacoes, setAvaliacoes] = useState<AvaliacaoComCpf[]>([])
     const [search, setSearch] = useState("")
     const [authenticated, setAuthenticated] = useState(false)
+    const [resetRequests, setResetRequests] = useState<Set<string>>(new Set())
+    const [confirmResetCpf, setConfirmResetCpf] = useState<string | null>(null)
+    const [confirmResetName, setConfirmResetName] = useState("")
+    const [resetting, setResetting] = useState(false)
 
     useEffect(() => {
         if (!isAdminAuthenticated()) {
@@ -30,6 +34,7 @@ export default function AdminDashboardPage() {
 
         async function loadData() {
             try {
+                // Load evaluations
                 const snapshot = await get(ref(getFirebaseDb(), "avaliacoes"))
                 if (snapshot.exists()) {
                     const data = snapshot.val() as Record<string, Avaliacao>
@@ -37,11 +42,22 @@ export default function AdminDashboardPage() {
                         cpf,
                         avaliacao,
                     }))
-                    // Sort alphabetically by student name
                     list.sort((a, b) =>
                         (a.avaliacao.dados?.nomeAluno ?? "").localeCompare(b.avaliacao.dados?.nomeAluno ?? "")
                     )
                     setAvaliacoes(list)
+                }
+
+                // Load reset requests via server API (bypasses Firebase rules)
+                const { cpf: adminCpf, password: adminPassword } = getAdminCredentials()
+                const resetRes = await fetch("/api/admin/reset-requests", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ adminCpf, adminPassword }),
+                })
+                if (resetRes.ok) {
+                    const resetData = await resetRes.json()
+                    setResetRequests(new Set(resetData.cpfs))
                 }
             } catch (error) {
                 console.error("Erro ao carregar avaliações:", error)
@@ -60,6 +76,58 @@ export default function AdminDashboardPage() {
 
     function handlePreview(cpf: string) {
         router.push(`/admin/preview/${cpf}`)
+    }
+
+    function openResetConfirm(cpf: string, nome: string) {
+        setConfirmResetCpf(cpf)
+        setConfirmResetName(nome)
+    }
+
+    function closeResetConfirm() {
+        setConfirmResetCpf(null)
+        setConfirmResetName("")
+    }
+
+    async function handleResetPassword() {
+        if (!confirmResetCpf) return
+        setResetting(true)
+
+        try {
+            // Retrieve admin credentials from session
+            const { cpf: adminCpf, password: adminPassword } = getAdminCredentials()
+
+            const res = await fetch("/api/admin/reset-password", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    cpf: confirmResetCpf,
+                    adminCpf,
+                    adminPassword,
+                }),
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                alert(`Erro ao resetar senha: ${data.error}`)
+                return
+            }
+
+            // Update local state
+            setResetRequests((prev) => {
+                const next = new Set(prev)
+                next.delete(confirmResetCpf!)
+                return next
+            })
+
+            alert(`Senha resetada com sucesso para ${confirmResetName}!`)
+            closeResetConfirm()
+        } catch (error) {
+            console.error("Erro no reset:", error)
+            alert("Erro ao resetar senha. Verifique o console.")
+        } finally {
+            setResetting(false)
+        }
     }
 
     // ── Filter logic ──
@@ -200,6 +268,7 @@ export default function AdminDashboardPage() {
                         filteredAvaliacoes.map((item, index) => {
                             const dados = item.avaliacao.dados
                             const stars = overallStars(item.avaliacao)
+                            const hasPendingReset = resetRequests.has(item.cpf)
 
                             return (
                                 <div
@@ -243,14 +312,30 @@ export default function AdminDashboardPage() {
                                             )}
                                         </div>
 
-                                        {/* Right: Preview button */}
-                                        <button
-                                            onClick={() => handlePreview(item.cpf)}
-                                            className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-4 py-2.5 text-xs font-semibold text-primary transition-all duration-200 hover:bg-primary/20 hover:border-primary/40 hover:scale-105 active:scale-95 shrink-0"
-                                        >
-                                            <Eye className="w-3.5 h-3.5" />
-                                            Preview
-                                        </button>
+                                        {/* Right: Action Buttons */}
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            {/* Reset Password Button */}
+                                            <button
+                                                onClick={() => openResetConfirm(item.cpf, dados?.nomeAluno ?? "Sem nome")}
+                                                className={`flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-all duration-200 hover:scale-105 active:scale-95 ${hasPendingReset
+                                                    ? "bg-red-500/15 border-red-500/40 text-red-400 hover:bg-red-500/25 hover:border-red-500/60 animate-pulse"
+                                                    : "bg-secondary/50 border-border/50 text-muted-foreground hover:bg-secondary/80 hover:text-foreground"
+                                                    }`}
+                                                title={hasPendingReset ? "Solicitação de reset pendente!" : "Resetar senha"}
+                                            >
+                                                <KeyRound className="w-3.5 h-3.5" />
+                                                Reset
+                                            </button>
+
+                                            {/* Preview Button */}
+                                            <button
+                                                onClick={() => handlePreview(item.cpf)}
+                                                className="flex items-center gap-2 rounded-xl bg-primary/10 border border-primary/20 px-4 py-2.5 text-xs font-semibold text-primary transition-all duration-200 hover:bg-primary/20 hover:border-primary/40 hover:scale-105 active:scale-95 shrink-0"
+                                            >
+                                                <Eye className="w-3.5 h-3.5" />
+                                                Preview
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             )
@@ -263,6 +348,56 @@ export default function AdminDashboardPage() {
                     Hei Bora Dançar © {new Date().getFullYear()} — Painel Administrativo
                 </p>
             </div>
+
+            {/* Confirmation Modal */}
+            {confirmResetCpf && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={closeResetConfirm} />
+                    <div className="relative z-10 max-w-sm w-[90%] bg-card rounded-2xl border border-border/50 p-6 shadow-2xl animate-fade-in">
+                        <div className="text-center space-y-4">
+                            <div className="w-12 h-12 mx-auto rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                                <KeyRound className="w-6 h-6 text-red-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-foreground mb-1">Resetar Senha</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Tem certeza que deseja resetar a senha de <strong className="text-foreground">{confirmResetName}</strong>?
+                                </p>
+                                <p className="text-xs text-muted-foreground/70 mt-2">
+                                    CPF: <span className="font-mono">{confirmResetCpf}</span>
+                                </p>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground/60 bg-secondary/30 rounded-lg px-3 py-2">
+                                Isso irá excluir a conta de autenticação do aluno e permitir que ele crie uma nova senha.
+                            </p>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={closeResetConfirm}
+                                    className="flex-1 rounded-xl border border-border/50 bg-secondary/30 px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-secondary/60 hover:text-foreground transition-all"
+                                    disabled={resetting}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleResetPassword}
+                                    disabled={resetting}
+                                    className="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    {resetting ? (
+                                        <span className="flex items-center justify-center gap-2">
+                                            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                            Resetando...
+                                        </span>
+                                    ) : (
+                                        "Confirmar Reset"
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     )
 }
+

@@ -53,9 +53,11 @@ export async function logoutAdmin(): Promise<void> {
 /**
  * Stores the admin session in sessionStorage.
  */
-export function setAdminSession(): void {
+export function setAdminSession(cpf?: string, password?: string): void {
     if (typeof window !== "undefined") {
         sessionStorage.setItem(ADMIN_SESSION_KEY, "true")
+        if (cpf) sessionStorage.setItem("admin_cpf", cpf.replace(/\D/g, ""))
+        if (password) sessionStorage.setItem("admin_password", password)
     }
 }
 
@@ -73,5 +75,18 @@ export function isAdminAuthenticated(): boolean {
 export function clearAdminSession(): void {
     if (typeof window !== "undefined") {
         sessionStorage.removeItem(ADMIN_SESSION_KEY)
+        sessionStorage.removeItem("admin_cpf")
+        sessionStorage.removeItem("admin_password")
+    }
+}
+
+/**
+ * Retrieves stored admin credentials from sessionStorage.
+ */
+export function getAdminCredentials(): { cpf: string; password: string } {
+    if (typeof window === "undefined") return { cpf: "", password: "" }
+    return {
+        cpf: sessionStorage.getItem("admin_cpf") ?? "",
+        password: sessionStorage.getItem("admin_password") ?? "",
     }
 }

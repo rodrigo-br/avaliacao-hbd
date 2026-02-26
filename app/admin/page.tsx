@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
 
             // Authenticate with Firebase Auth so we can read data
             await loginAdminFirebase(cpf, password)
-            setAdminSession()
+            setAdminSession(cpf, password)
             router.push("/admin/dashboard")
         } catch {
             setError("Erro ao autenticar. Tente novamente.")
