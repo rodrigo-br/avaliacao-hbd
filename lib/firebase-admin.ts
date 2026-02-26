@@ -17,6 +17,7 @@ function getAdminApp(): App {
                 _adminApp = initializeApp({
                     credential: cert(serviceAccount),
                     databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,
+                    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
                 })
             } else {
                 // Fallback: initialize with project ID only (for environments with ADC)
