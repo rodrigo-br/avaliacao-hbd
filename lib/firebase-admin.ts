@@ -10,6 +10,10 @@ function getAdminApp(): App {
             const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
             if (serviceAccountJson) {
                 const serviceAccount = JSON.parse(serviceAccountJson)
+                // Fix private_key newlines — .env.local reads \n as literal text
+                if (serviceAccount.private_key) {
+                    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n")
+                }
                 _adminApp = initializeApp({
                     credential: cert(serviceAccount),
                     databaseURL: process.env.NEXT_PUBLIC_FIREBASE_DATABASE_URL,

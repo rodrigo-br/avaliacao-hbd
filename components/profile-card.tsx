@@ -2,8 +2,6 @@
 
 import Image from "next/image"
 import { useEffect, useState } from "react"
-import { ref, getDownloadURL } from "firebase/storage"
-import { getFirebaseStorage } from "@/lib/firebase-app"
 import { User } from "lucide-react"
 
 interface ProfileCardProps {
@@ -22,18 +20,17 @@ export function ProfileCard({ nomeAluno, nivel, cpf }: ProfileCardProps) {
       if (!cpf) return
       setLoading(true)
 
-      const extensions = ["jpg", "jpeg", "png", "webp"]
-      const storage = getFirebaseStorage()
-
-      for (const ext of extensions) {
-        try {
-          const fotoRef = ref(storage, `fotos/${cpf}.${ext}`)
-          const url = await getDownloadURL(fotoRef)
-          setFotoUrl(url)
-          return // URL encontrada, o Image component cuidará do restante do loading
-        } catch (error) {
-          continue
+      try {
+        const res = await fetch(`/api/photo/${cpf}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.url) {
+            setFotoUrl(data.url)
+            return
+          }
         }
+      } catch (error) {
+        console.error("Erro ao carregar foto:", error)
       }
       setLoading(false) // Nenhuma imagem encontrada
     }

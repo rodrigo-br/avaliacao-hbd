@@ -2,10 +2,9 @@
 
 import { useEffect, useState, useRef, type FormEvent, type ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
-import { isAdminAuthenticated } from "@/lib/admin-auth"
-import { getFirebaseDb, getFirebaseStorage } from "@/lib/firebase-app"
+import { isAdminAuthenticated, getAdminCredentials } from "@/lib/admin-auth"
+import { getFirebaseDb } from "@/lib/firebase-app"
 import { ref, set } from "firebase/database"
-import { ref as storageRef, uploadBytes } from "firebase/storage"
 import { LogoIcon } from "@/components/logo-icon"
 import {
     ArrowLeft,
@@ -486,11 +485,23 @@ export default function CriarAvaliacaoPage() {
 
             await set(ref(getFirebaseDb(), `avaliacoes/${cpfDigits}`), avaliacaoData)
 
-            // Upload photo if selected (optional)
+            // Upload photo if selected (optional) — via server API
             if (fotoFile) {
-                const ext = fotoFile.name.split(".").pop() || "jpg"
-                const fotoRef = storageRef(getFirebaseStorage(), `fotos/${cpfDigits}.${ext}`)
-                await uploadBytes(fotoRef, fotoFile)
+                const { cpf: adminCpf, password: adminPassword } = getAdminCredentials()
+                const formData = new FormData()
+                formData.append("file", fotoFile)
+                formData.append("cpf", cpfDigits)
+                formData.append("adminCpf", adminCpf)
+                formData.append("adminPassword", adminPassword)
+
+                const uploadRes = await fetch("/api/admin/upload-photo", {
+                    method: "POST",
+                    body: formData,
+                })
+                if (!uploadRes.ok) {
+                    const uploadErr = await uploadRes.json()
+                    console.error("Erro ao enviar foto:", uploadErr.error)
+                }
             }
             setSuccess(true)
             // After 2s, redirect to dashboard
