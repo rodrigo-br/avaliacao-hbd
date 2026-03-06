@@ -9,13 +9,16 @@ import {
     mapAvaliacaoParaAttributes,
     mapSubAttributes,
     mapEvolucao,
+    listarPeriodos,
+    formatarPeriodo,
     type Avaliacao,
+    type AvaliacoesDoAluno,
 } from "@/lib/firebase"
 import { ProfileSection } from "@/components/profile-section"
 import { BottomCard } from "@/components/bottom-card"
 import { ActionButtons } from "@/components/action-buttons"
 import { LogoIcon } from "@/components/logo-icon"
-import { ArrowLeft, Eye } from "lucide-react"
+import { ArrowLeft, Eye, ChevronLeft, ChevronRight, Calendar } from "lucide-react"
 
 type PreviewState = "loading" | "ready" | "no-data"
 
@@ -25,7 +28,9 @@ export default function AdminPreviewPage() {
     const cpf = params.cpf as string
 
     const [state, setState] = useState<PreviewState>("loading")
-    const [avaliacao, setAvaliacao] = useState<Avaliacao | null>(null)
+    const [todasAvaliacoes, setTodasAvaliacoes] = useState<AvaliacoesDoAluno | null>(null)
+    const [periodos, setPeriodos] = useState<string[]>([])
+    const [periodoAtual, setPeriodoAtual] = useState<string>("")
     const [authenticated, setAuthenticated] = useState(false)
 
     useEffect(() => {
@@ -39,7 +44,11 @@ export default function AdminPreviewPage() {
             try {
                 const snapshot = await get(ref(getFirebaseDb(), `avaliacoes/${cpf}`))
                 if (snapshot.exists()) {
-                    setAvaliacao(snapshot.val())
+                    const data = snapshot.val() as AvaliacoesDoAluno
+                    setTodasAvaliacoes(data)
+                    const listaPeriodos = listarPeriodos(data)
+                    setPeriodos(listaPeriodos)
+                    setPeriodoAtual(listaPeriodos[0] ?? "")
                     setState("ready")
                 } else {
                     setState("no-data")
@@ -55,6 +64,20 @@ export default function AdminPreviewPage() {
 
     function handleBack() {
         router.push("/admin/dashboard")
+    }
+
+    function handlePeriodoAnterior() {
+        const idx = periodos.indexOf(periodoAtual)
+        if (idx < periodos.length - 1) {
+            setPeriodoAtual(periodos[idx + 1])
+        }
+    }
+
+    function handleProximoPeriodo() {
+        const idx = periodos.indexOf(periodoAtual)
+        if (idx > 0) {
+            setPeriodoAtual(periodos[idx - 1])
+        }
     }
 
     if (!authenticated) return null
@@ -74,7 +97,7 @@ export default function AdminPreviewPage() {
     }
 
     // ── No Data ──
-    if (state === "no-data" || !avaliacao) {
+    if (state === "no-data" || !todasAvaliacoes || !periodoAtual) {
         return (
             <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-8">
                 <div className="fixed inset-0 bg-background" />
@@ -101,9 +124,14 @@ export default function AdminPreviewPage() {
 
     // ── Ready — Render exactly like the student dashboard ──
 
+    const avaliacao = todasAvaliacoes[periodoAtual]
     const attributes = mapAvaliacaoParaAttributes(avaliacao)
     const subAttributesMap = mapSubAttributes(avaliacao)
     const { pontosFortes, pontosDesenvolver } = mapEvolucao(avaliacao)
+
+    const idxAtual = periodos.indexOf(periodoAtual)
+    const temAnterior = idxAtual < periodos.length - 1
+    const temProximo = idxAtual > 0
 
     return (
         <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-8">
@@ -115,7 +143,7 @@ export default function AdminPreviewPage() {
             {/* Main Card */}
             <div className="relative z-10 w-full max-w-[420px]">
                 <div className="rounded-3xl bg-card/40 backdrop-blur-xl border border-border/30 p-6 shadow-2xl shadow-primary/5">
-                    {/* Top Bar: Back + Admin Preview Badge + Logo */}
+                    {/* Top Bar: Back + Logo */}
                     <div className="flex items-center justify-between mb-2 animate-fade-in">
                         <button
                             onClick={handleBack}
@@ -129,7 +157,7 @@ export default function AdminPreviewPage() {
                     </div>
 
                     {/* Preview Badge */}
-                    <div className="flex justify-center mb-4 animate-fade-in animation-delay-100">
+                    <div className="flex justify-center mb-3 animate-fade-in animation-delay-100">
                         <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-3 py-1">
                             <Eye className="w-3 h-3 text-primary" />
                             <span className="text-[10px] font-semibold text-primary uppercase tracking-wider">
@@ -137,6 +165,37 @@ export default function AdminPreviewPage() {
                             </span>
                         </div>
                     </div>
+
+                    {/* Period Navigator */}
+                    {periodos.length > 1 && (
+                        <div className="flex items-center justify-center gap-3 mb-4 animate-fade-in animation-delay-200">
+                            <button
+                                onClick={handlePeriodoAnterior}
+                                disabled={!temAnterior}
+                                className="w-8 h-8 rounded-xl bg-secondary/50 border border-border/30 flex items-center justify-center text-muted-foreground hover:bg-secondary/80 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Período anterior"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-secondary/30 border border-border/30">
+                                <Calendar className="w-3.5 h-3.5 text-primary" />
+                                <span className="text-xs font-semibold text-foreground">
+                                    {formatarPeriodo(periodoAtual)}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                    ({periodos.length - idxAtual}/{periodos.length})
+                                </span>
+                            </div>
+                            <button
+                                onClick={handleProximoPeriodo}
+                                disabled={!temProximo}
+                                className="w-8 h-8 rounded-xl bg-secondary/50 border border-border/30 flex items-center justify-center text-muted-foreground hover:bg-secondary/80 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Próximo período"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
 
                     {/* Profile Section with Radial Attributes */}
                     <section className="relative mb-8" aria-label="Perfil do aluno">

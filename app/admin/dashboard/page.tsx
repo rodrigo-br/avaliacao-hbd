@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { isAdminAuthenticated, logoutAdmin, getAdminCredentials } from "@/lib/admin-auth"
 import { getFirebaseDb } from "@/lib/firebase-app"
 import { ref, get } from "firebase/database"
-import { calcularMedia, type Avaliacao } from "@/lib/firebase"
+import { calcularMedia, getAvaliacaoMaisRecente, type Avaliacao, type AvaliacoesDoAluno } from "@/lib/firebase"
 import { LogoIcon } from "@/components/logo-icon"
 import { LogOut, Shield, Eye, Users, Search, Star, Plus, KeyRound } from "lucide-react"
 import { AdminStudentAvatar } from "@/components/admin-student-avatar"
@@ -13,6 +13,7 @@ import { AdminStudentAvatar } from "@/components/admin-student-avatar"
 interface AvaliacaoComCpf {
     cpf: string
     avaliacao: Avaliacao
+    totalPeriodos: number
 }
 
 export default function AdminDashboardPage() {
@@ -38,11 +39,18 @@ export default function AdminDashboardPage() {
                 // Load evaluations
                 const snapshot = await get(ref(getFirebaseDb(), "avaliacoes"))
                 if (snapshot.exists()) {
-                    const data = snapshot.val() as Record<string, Avaliacao>
-                    const list: AvaliacaoComCpf[] = Object.entries(data).map(([cpf, avaliacao]) => ({
-                        cpf,
-                        avaliacao,
-                    }))
+                    const data = snapshot.val() as Record<string, AvaliacoesDoAluno>
+                    const list: AvaliacaoComCpf[] = []
+                    for (const [cpf, periodos] of Object.entries(data)) {
+                        const resultado = getAvaliacaoMaisRecente(periodos)
+                        if (resultado) {
+                            list.push({
+                                cpf,
+                                avaliacao: resultado.avaliacao,
+                                totalPeriodos: Object.keys(periodos).filter((k) => /^\d{4}-\d{2}$/.test(k)).length,
+                            })
+                        }
+                    }
                     list.sort((a, b) =>
                         (a.avaliacao.dados?.nomeAluno ?? "").localeCompare(b.avaliacao.dados?.nomeAluno ?? "")
                     )
@@ -289,6 +297,11 @@ export default function AdminDashboardPage() {
                                                     {dados?.nivel && (
                                                         <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${levelBadgeClass(dados.nivel)}`}>
                                                             {dados.nivel}
+                                                        </span>
+                                                    )}
+                                                    {item.totalPeriodos > 1 && (
+                                                        <span className="inline-flex items-center rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 px-2 py-0.5 text-[10px] font-semibold">
+                                                            {item.totalPeriodos} avaliações
                                                         </span>
                                                     )}
                                                 </div>

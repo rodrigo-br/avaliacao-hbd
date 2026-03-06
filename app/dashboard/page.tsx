@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { onAuthChange, emailToCpf, logout } from "@/lib/auth"
 import { getFirebaseDb } from "@/lib/firebase-app"
@@ -9,13 +9,16 @@ import {
     mapAvaliacaoParaAttributes,
     mapSubAttributes,
     mapEvolucao,
+    listarPeriodos,
+    formatarPeriodo,
     type Avaliacao,
+    type AvaliacoesDoAluno,
 } from "@/lib/firebase"
 import { ProfileSection } from "@/components/profile-section"
 import { BottomCard } from "@/components/bottom-card"
 import { ActionButtons } from "@/components/action-buttons"
 import { LogoIcon } from "@/components/logo-icon"
-import { LogOut } from "lucide-react"
+import { LogOut, ChevronLeft, ChevronRight, Calendar } from "lucide-react"
 
 type DashboardState = "loading" | "ready" | "no-data"
 
@@ -52,7 +55,9 @@ const PLACEHOLDER_SUGESTOES = { observacoes: "", selecionadas: ["Continuar prati
 export default function DashboardPage() {
     const router = useRouter()
     const [state, setState] = useState<DashboardState>("loading")
-    const [avaliacao, setAvaliacao] = useState<Avaliacao | null>(null)
+    const [todasAvaliacoes, setTodasAvaliacoes] = useState<AvaliacoesDoAluno | null>(null)
+    const [periodos, setPeriodos] = useState<string[]>([])
+    const [periodoAtual, setPeriodoAtual] = useState<string>("")
     const [cpf, setCpf] = useState("")
 
     useEffect(() => {
@@ -68,7 +73,11 @@ export default function DashboardPage() {
             try {
                 const snapshot = await get(ref(getFirebaseDb(), `avaliacoes/${userCpf}`))
                 if (snapshot.exists()) {
-                    setAvaliacao(snapshot.val())
+                    const data = snapshot.val() as AvaliacoesDoAluno
+                    setTodasAvaliacoes(data)
+                    const listaPeriodos = listarPeriodos(data)
+                    setPeriodos(listaPeriodos)
+                    setPeriodoAtual(listaPeriodos[0] ?? "")
                     setState("ready")
                 } else {
                     setState("no-data")
@@ -85,6 +94,20 @@ export default function DashboardPage() {
     async function handleLogout() {
         await logout()
         router.replace("/auth")
+    }
+
+    function handlePeriodoAnterior() {
+        const idx = periodos.indexOf(periodoAtual)
+        if (idx < periodos.length - 1) {
+            setPeriodoAtual(periodos[idx + 1])
+        }
+    }
+
+    function handleProximoPeriodo() {
+        const idx = periodos.indexOf(periodoAtual)
+        if (idx > 0) {
+            setPeriodoAtual(periodos[idx - 1])
+        }
     }
 
     // ── Loading ──────────────────────────────────────
@@ -104,7 +127,7 @@ export default function DashboardPage() {
 
     // ── No Data ──────────────────────────────────────
 
-    if (state === "no-data" || !avaliacao) {
+    if (state === "no-data" || !todasAvaliacoes || !periodoAtual) {
         return (
             <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-8">
                 <div className="fixed inset-0 bg-background" />
@@ -131,6 +154,7 @@ export default function DashboardPage() {
 
     // ── Ready ────────────────────────────────────────
 
+    const avaliacao = todasAvaliacoes[periodoAtual]
     const isBranco = avaliacao.dados.nivel === "Branco"
 
     // For "Branco" level: replace real star values with placeholders for locked categories
@@ -159,6 +183,10 @@ export default function DashboardPage() {
     const feedbackData = isBranco ? PLACEHOLDER_FEEDBACK : (avaliacao.feedback ?? [])
     const sugestoesData = isBranco ? PLACEHOLDER_SUGESTOES : (avaliacao.sugestoes ?? { observacoes: "", selecionadas: [] })
 
+    const idxAtual = periodos.indexOf(periodoAtual)
+    const temAnterior = idxAtual < periodos.length - 1
+    const temProximo = idxAtual > 0
+
     return (
         <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-8">
             {/* Background Radial Gradient */}
@@ -181,6 +209,37 @@ export default function DashboardPage() {
                         </button>
                         <LogoIcon />
                     </div>
+
+                    {/* Period Navigator — only when multiple evaluations exist */}
+                    {periodos.length > 1 && (
+                        <div className="flex items-center justify-center gap-3 mb-4 animate-fade-in animation-delay-100">
+                            <button
+                                onClick={handlePeriodoAnterior}
+                                disabled={!temAnterior}
+                                className="w-8 h-8 rounded-xl bg-secondary/50 border border-border/30 flex items-center justify-center text-muted-foreground hover:bg-secondary/80 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Avaliação anterior"
+                            >
+                                <ChevronLeft className="w-4 h-4" />
+                            </button>
+                            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-secondary/30 border border-border/30">
+                                <Calendar className="w-3.5 h-3.5 text-primary" />
+                                <span className="text-xs font-semibold text-foreground">
+                                    {formatarPeriodo(periodoAtual)}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground">
+                                    ({periodos.length - idxAtual}/{periodos.length})
+                                </span>
+                            </div>
+                            <button
+                                onClick={handleProximoPeriodo}
+                                disabled={!temProximo}
+                                className="w-8 h-8 rounded-xl bg-secondary/50 border border-border/30 flex items-center justify-center text-muted-foreground hover:bg-secondary/80 hover:text-foreground transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                                title="Avaliação mais recente"
+                            >
+                                <ChevronRight className="w-4 h-4" />
+                            </button>
+                        </div>
+                    )}
 
                     {/* Profile Section with Radial Attributes */}
                     <section className="relative mb-8" aria-label="Perfil do aluno">

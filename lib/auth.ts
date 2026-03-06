@@ -30,13 +30,11 @@ export interface CheckIdResult {
 
 /**
  * Verifica se o CPF existe no banco e se já tem senha criada.
- * Compatível com regras de segurança restritas.
+ * Lê apenas campos públicos: avaliacoes/{cpf}/senha_criada e avaliacoes/{cpf}/dados/nomeAluno
  */
 export async function checkId(cpf: string): Promise<CheckIdResult> {
     const digits = cpf.replace(/\D/g, "")
 
-    // Buscamos apenas os campos que deixamos públicos nas regras do Firebase
-    // Se conseguirmos ler o nome do aluno, significa que o CPF existe
     const [snapSenha, snapNome] = await Promise.all([
         get(ref(getFirebaseDb(), `avaliacoes/${digits}/senha_criada`)),
         get(ref(getFirebaseDb(), `avaliacoes/${digits}/dados/nomeAluno`))
@@ -61,7 +59,7 @@ export async function createPassword(cpf: string, password: string) {
     // Cria o usuário no Firebase Auth e já faz login
     const credential = await createUserWithEmailAndPassword(getFirebaseAuth(), email, password)
 
-    // Marca no DB que a senha foi criada
+    // Marca no DB que a senha foi criada (no nível raiz do CPF)
     await update(ref(getFirebaseDb(), `avaliacoes/${digits}`), {
         senha_criada: true,
     })

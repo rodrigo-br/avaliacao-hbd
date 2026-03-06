@@ -4,7 +4,8 @@ import { useEffect, useState, useRef, type FormEvent, type ChangeEvent } from "r
 import { useRouter } from "next/navigation"
 import { isAdminAuthenticated, getAdminCredentials } from "@/lib/admin-auth"
 import { getFirebaseDb } from "@/lib/firebase-app"
-import { ref, set } from "firebase/database"
+import { ref, set, get } from "firebase/database"
+import { gerarChavePeriodo } from "@/lib/firebase"
 import { LogoIcon } from "@/components/logo-icon"
 import {
     ArrowLeft,
@@ -379,6 +380,7 @@ export default function CriarAvaliacaoPage() {
     const [saving, setSaving] = useState(false)
     const [success, setSuccess] = useState(false)
     const [globalError, setGlobalError] = useState("")
+    const [nomeAlunoBloqueado, setNomeAlunoBloqueado] = useState(false)
 
     useEffect(() => {
         if (!isAdminAuthenticated()) {
@@ -387,6 +389,32 @@ export default function CriarAvaliacaoPage() {
         }
         setAuthenticated(true)
     }, [router])
+
+    // Quando o CPF está completo, verifica se o aluno já existe e preenche o nome
+    useEffect(() => {
+        const digits = cpfToDigits(cpf)
+        if (digits.length !== 11) {
+            setNomeAlunoBloqueado(false)
+            return
+        }
+
+        async function checkExistingStudent() {
+            try {
+                const snapshot = await get(ref(getFirebaseDb(), `avaliacoes/${digits}/dados/nomeAluno`))
+                if (snapshot.exists()) {
+                    const nome = snapshot.val() as string
+                    setDados((prev) => ({ ...prev, nomeAluno: nome }))
+                    setNomeAlunoBloqueado(true)
+                } else {
+                    setNomeAlunoBloqueado(false)
+                }
+            } catch {
+                setNomeAlunoBloqueado(false)
+            }
+        }
+
+        checkExistingStudent()
+    }, [cpf])
 
     // ── Updaters ──
 
@@ -459,6 +487,7 @@ export default function CriarAvaliacaoPage() {
         )
 
         if (Object.keys(validationErrors).length > 0) {
+            console.log("Validation errors:", JSON.stringify(validationErrors, null, 2))
             setErrors(validationErrors)
             setGlobalError("Preencha todos os campos obrigatórios antes de salvar.")
             // Scroll to top to show the error
@@ -483,7 +512,11 @@ export default function CriarAvaliacaoPage() {
                 sugestoes,
             }
 
-            await set(ref(getFirebaseDb(), `avaliacoes/${cpfDigits}`), avaliacaoData)
+            const chavePeriodo = gerarChavePeriodo(dados)
+            await set(ref(getFirebaseDb(), `avaliacoes/${cpfDigits}/${chavePeriodo}`), avaliacaoData)
+
+            // Manter dados/nomeAluno na raiz do CPF para leitura pública (checkId)
+            await set(ref(getFirebaseDb(), `avaliacoes/${cpfDigits}/dados`), { nomeAluno: dados.nomeAluno })
 
             // Upload photo if selected (optional) — via server API
             if (fotoFile) {
@@ -657,8 +690,12 @@ export default function CriarAvaliacaoPage() {
                                 placeholder="Nome completo do aluno"
                                 value={dados.nomeAluno}
                                 onChange={(e) => updateDados("nomeAluno", e.target.value)}
-                                className={errors.dados?.nomeAluno ? errorInputClass : inputClass}
+                                readOnly={nomeAlunoBloqueado}
+                                className={`${errors.dados?.nomeAluno ? errorInputClass : inputClass} ${nomeAlunoBloqueado ? "opacity-60 cursor-not-allowed" : ""}`}
                             />
+                            {nomeAlunoBloqueado && (
+                                <p className="text-[10px] text-primary/70">Aluno já cadastrado — nome preenchido automaticamente.</p>
+                            )}
                             {errors.dados?.nomeAluno && (
                                 <p className="text-[10px] text-red-400">{errors.dados.nomeAluno}</p>
                             )}
