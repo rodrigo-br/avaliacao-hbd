@@ -20,7 +20,7 @@ import { ActionButtons } from "@/components/action-buttons"
 import { LogoIcon } from "@/components/logo-icon"
 import { LogOut, ChevronLeft, ChevronRight, Calendar } from "lucide-react"
 
-type DashboardState = "loading" | "ready" | "no-data"
+type DashboardState = "loading" | "ready" | "no-data" | "empty"
 
 // Categories that are locked for "Branco" level students
 const BRANCO_LOCKED_CATEGORIES = new Set(["Técnica", "Movimentos", "Comportamento"])
@@ -59,6 +59,7 @@ export default function DashboardPage() {
     const [periodos, setPeriodos] = useState<string[]>([])
     const [periodoAtual, setPeriodoAtual] = useState<string>("")
     const [cpf, setCpf] = useState("")
+    const [emptyNomeAluno, setEmptyNomeAluno] = useState("")
 
     useEffect(() => {
         const unsubscribe = onAuthChange(async (user) => {
@@ -73,12 +74,20 @@ export default function DashboardPage() {
             try {
                 const snapshot = await get(ref(getFirebaseDb(), `avaliacoes/${userCpf}`))
                 if (snapshot.exists()) {
-                    const data = snapshot.val() as AvaliacoesDoAluno
-                    setTodasAvaliacoes(data)
-                    const listaPeriodos = listarPeriodos(data)
-                    setPeriodos(listaPeriodos)
-                    setPeriodoAtual(listaPeriodos[0] ?? "")
-                    setState("ready")
+                    const data = snapshot.val() as AvaliacoesDoAluno & { dados?: { nomeAluno?: string } }
+                    const listaPeriodos = listarPeriodos(data as AvaliacoesDoAluno)
+                    
+                    if (listaPeriodos.length > 0) {
+                        setTodasAvaliacoes(data as AvaliacoesDoAluno)
+                        setPeriodos(listaPeriodos)
+                        setPeriodoAtual(listaPeriodos[0] ?? "")
+                        setState("ready")
+                    } else if (data.dados?.nomeAluno) {
+                        setEmptyNomeAluno(data.dados.nomeAluno)
+                        setState("empty")
+                    } else {
+                        setState("no-data")
+                    }
                 } else {
                     setState("no-data")
                 }
@@ -127,7 +136,7 @@ export default function DashboardPage() {
 
     // ── No Data ──────────────────────────────────────
 
-    if (state === "no-data" || !todasAvaliacoes || !periodoAtual) {
+    if (state === "no-data" || (state === "ready" && (!todasAvaliacoes || !periodoAtual))) {
         return (
             <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-8">
                 <div className="fixed inset-0 bg-background" />
@@ -147,6 +156,81 @@ export default function DashboardPage() {
                         <LogOut className="w-4 h-4" />
                         Sair
                     </button>
+                </div>
+            </main>
+        )
+    }
+
+    // ── Empty (No Evaluations yet, but Student Exists) ──
+
+    if (state === "empty") {
+        const emptyAttributes = [
+            { title: "Técnica", stars: 0, delay: "animation-delay-300" },
+            { title: "Movimentos", stars: 0, delay: "animation-delay-400" },
+            { title: "Expressão", stars: 0, delay: "animation-delay-300" },
+            { title: "Comportamento", stars: 0, delay: "animation-delay-400" },
+            { title: "Conexão", stars: 0, delay: "animation-delay-200" },
+        ]
+
+        return (
+            <main className="relative min-h-screen flex items-center justify-center overflow-hidden px-4 py-8">
+                {/* Background Radial Gradient */}
+                <div className="fixed inset-0 bg-background" />
+                <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,106,0,0.12)_0%,_rgba(255,106,0,0.04)_35%,_transparent_70%)]" />
+                <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(255,106,0,0.06)_0%,_transparent_50%)]" />
+
+                {/* Main Card */}
+                <div className="relative z-10 w-full max-w-[420px]">
+                    <div className="rounded-3xl bg-card/40 backdrop-blur-xl border border-border/30 p-6 shadow-2xl shadow-primary/5 relative overflow-hidden">
+                        
+                        {/* Imagem de Luz sobreposta */}
+                        <div className="absolute top-0 left-0 right-0 h-[60%] z-30 pointer-events-none flex justify-center mix-blend-screen opacity-90">
+                            <img src="/images/luz.png" alt="Luz" className="object-cover w-full h-full" />
+                        </div>
+
+                        {/* Top Bar: Logout + Logo */}
+                        <div className="flex items-center justify-between mb-2 animate-fade-in relative z-40">
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-muted-foreground/60 hover:text-foreground hover:bg-secondary/50 transition-all"
+                                title="Sair"
+                            >
+                                <LogOut className="w-3.5 h-3.5" />
+                                Sair
+                            </button>
+                            <LogoIcon />
+                        </div>
+
+                        {/* Profile Section com Blur */}
+                        <section className="relative mb-4 blur-[3px] opacity-60 pointer-events-none" aria-label="Perfil do aluno">
+                            <ProfileSection
+                                attributes={emptyAttributes}
+                                subAttributesMap={{}}
+                                nomeAluno={emptyNomeAluno}
+                                nivel="Branco"
+                                cpf={cpf}
+                                lockedCategories={BRANCO_LOCKED_CATEGORIES}
+                                emptyMode={true}
+                            />
+                        </section>
+
+                        {/* Mensagem Pista Vazia */}
+                        <section className="relative z-40 animate-fade-in animation-delay-300" aria-label="Mensagem de Pista Vazia">
+                            <div className="rounded-2xl bg-secondary/30 backdrop-blur-sm border border-border/30 p-6 text-center shadow-lg shadow-black/5 mt-4">
+                                <h3 className="text-base font-bold text-foreground mb-3 flex items-center justify-center gap-2">
+                                    <span className="text-xl">🌟</span>
+                                    <span>Pista vazia, mas por pouco tempo...</span>
+                                    <span className="text-xl">✨</span>
+                                </h3>
+                                <p className="text-[14px] text-muted-foreground mb-4 leading-relaxed">
+                                    Já estamos com tudo pronto para registrar sua evolução, <strong className="text-foreground">{emptyNomeAluno}</strong>. Suas conquistas e pontos fortes ganharão vida aqui assim que você der o próximo passo na nossa aula prática.
+                                </p>
+                                <p className="text-[14px] text-primary font-semibold">
+                                    Vem dançar com a gente e preencher esse espaço com o seu talento!
+                                </p>
+                            </div>
+                        </section>
+                    </div>
                 </div>
             </main>
         )

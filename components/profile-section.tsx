@@ -23,9 +23,10 @@ interface ProfileSectionProps {
     nivel: string
     cpf: string
     lockedCategories?: Set<string>
+    emptyMode?: boolean
 }
 
-export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel, cpf, lockedCategories = new Set() }: ProfileSectionProps) {
+export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel, cpf, lockedCategories = new Set(), emptyMode = false }: ProfileSectionProps) {
     const containerRef = useRef<HTMLDivElement>(null)
     const profileRef = useRef<HTMLDivElement>(null)
     const cardRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -128,6 +129,7 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
                                 delay={attributes[4].delay}
                                 onClick={() => handleCardClick(attributes[4].title)}
                                 locked={lockedCategories.has(attributes[4].title)}
+                                emptyMode={emptyMode}
                             />
                         </div>
                     </div>
@@ -142,6 +144,7 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
                                 delay={attributes[0].delay}
                                 onClick={() => handleCardClick(attributes[0].title)}
                                 locked={lockedCategories.has(attributes[0].title)}
+                                emptyMode={emptyMode}
                             />
                         </div>
 
@@ -153,13 +156,14 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
                                 delay={attributes[1].delay}
                                 onClick={() => handleCardClick(attributes[1].title)}
                                 locked={lockedCategories.has(attributes[1].title)}
+                                emptyMode={emptyMode}
                             />
                         </div>
                     </div>
 
                     {/* Profile Center */}
                     <div ref={profileRef} className="py-2 z-20">
-                        <ProfileCard nomeAluno={nomeAluno} nivel={nivel} cpf={cpf} />
+                        <ProfileCard nomeAluno={nomeAluno} nivel={nivel} cpf={cpf} emptyMode={emptyMode} />
                     </div>
 
                     {/* Bottom row attributes */}
@@ -172,6 +176,7 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
                                 delay={attributes[2].delay}
                                 onClick={() => handleCardClick(attributes[2].title)}
                                 locked={lockedCategories.has(attributes[2].title)}
+                                emptyMode={emptyMode}
                             />
                         </div>
 
@@ -183,6 +188,7 @@ export function ProfileSection({ attributes, subAttributesMap, nomeAluno, nivel,
                                 delay={attributes[3].delay}
                                 onClick={() => handleCardClick(attributes[3].title)}
                                 locked={lockedCategories.has(attributes[3].title)}
+                                emptyMode={emptyMode}
                             />
                         </div>
                     </div>

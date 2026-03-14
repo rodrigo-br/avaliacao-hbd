@@ -8,16 +8,17 @@ interface ProfileCardProps {
   nomeAluno: string
   nivel: string
   cpf: string
+  emptyMode?: boolean
 }
 
-export function ProfileCard({ nomeAluno, nivel, cpf }: ProfileCardProps) {
+export function ProfileCard({ nomeAluno, nivel, cpf, emptyMode = false }: ProfileCardProps) {
   const [fotoUrl, setFotoUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [imgError, setImgError] = useState(false)
 
   useEffect(() => {
     async function carregarFoto() {
-      if (!cpf) return
+      if (!cpf || emptyMode) return
       setLoading(true)
 
       try {
@@ -36,7 +37,7 @@ export function ProfileCard({ nomeAluno, nivel, cpf }: ProfileCardProps) {
     }
 
     carregarFoto()
-  }, [cpf])
+  }, [cpf, emptyMode])
 
   const levelConfigs: Record<string, { glow: string; gradient: string; text: string }> = {
     "Branco": {
@@ -68,35 +69,37 @@ export function ProfileCard({ nomeAluno, nivel, cpf }: ProfileCardProps) {
       className="relative flex flex-col items-center -mt-8 animate-fade-in animation-delay-200"
       style={{ "--glow-color": config.glow } as React.CSSProperties}
     >
-      <div className="relative">
-        <div className={`w-24 h-24 rounded-full p-1 bg-gradient-to-br ${config.gradient} animate-border-glow`}>
-          <div className={`w-full h-full rounded-full overflow-hidden border-2 border-background bg-secondary/50 relative flex items-center justify-center ${loading ? "animate-shimmer" : ""}`}>
+      {!emptyMode && (
+        <div className="relative">
+          <div className={`w-24 h-24 rounded-full p-1 bg-gradient-to-br ${config.gradient} animate-border-glow`}>
+            <div className={`w-full h-full rounded-full overflow-hidden border-2 border-background bg-secondary/50 relative flex items-center justify-center ${loading ? "animate-shimmer" : ""}`}>
 
-            {fotoUrl && !imgError ? (
-              <Image
-                src={fotoUrl}
-                alt="Foto do aluno"
-                width={96}
-                height={96}
-                className={`w-full h-full object-cover transition-opacity duration-700 ${loading ? "opacity-0" : "opacity-100"}`}
-                unoptimized={fotoUrl.startsWith("http")}
-                onLoadingComplete={() => setLoading(false)}
-                onError={() => {
-                  setImgError(true)
-                  setLoading(false)
-                }}
-              />
-            ) : !loading && (
-              <div className="animate-fade-in flex items-center justify-center w-full h-full">
-                <User className="w-10 h-10 text-white/20" />
-              </div>
-            )}
+              {fotoUrl && !imgError ? (
+                <Image
+                  src={fotoUrl}
+                  alt="Foto do aluno"
+                  width={96}
+                  height={96}
+                  className={`w-full h-full object-cover transition-opacity duration-700 ${loading ? "opacity-0" : "opacity-100"}`}
+                  unoptimized={fotoUrl.startsWith("http")}
+                  onLoadingComplete={() => setLoading(false)}
+                  onError={() => {
+                    setImgError(true)
+                    setLoading(false)
+                  }}
+                />
+              ) : !loading && (
+                <div className="animate-fade-in flex items-center justify-center w-full h-full">
+                  <User className="w-10 h-10 text-white/20" />
+                </div>
+              )}
+            </div>
           </div>
+          <div className="absolute -inset-2 rounded-full opacity-20 blur-xl -z-10 animate-glow-pulse" style={{ backgroundColor: `rgb(${config.glow})` }} />
         </div>
-        <div className="absolute -inset-2 rounded-full opacity-20 blur-xl -z-10 animate-glow-pulse" style={{ backgroundColor: `rgb(${config.glow})` }} />
-      </div>
+      )}
 
-      <div className="mt-1 text-center">
+      <div className={`${emptyMode ? 'mt-12' : 'mt-1'} text-center`}>
         <p className="text-[10px] font-bold tracking-wider text-white">
           {nomeAluno}
         </p>
@@ -107,3 +110,4 @@ export function ProfileCard({ nomeAluno, nivel, cpf }: ProfileCardProps) {
     </div>
   )
 }
+
