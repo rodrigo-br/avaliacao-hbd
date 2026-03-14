@@ -76,7 +76,7 @@ export default function DashboardPage() {
                 if (snapshot.exists()) {
                     const data = snapshot.val() as AvaliacoesDoAluno & { dados?: { nomeAluno?: string } }
                     const listaPeriodos = listarPeriodos(data as AvaliacoesDoAluno)
-                    
+
                     if (listaPeriodos.length > 0) {
                         setTodasAvaliacoes(data as AvaliacoesDoAluno)
                         setPeriodos(listaPeriodos)
@@ -182,9 +182,9 @@ export default function DashboardPage() {
                 {/* Main Card */}
                 <div className="relative z-10 w-full max-w-[420px]">
                     <div className="rounded-3xl bg-card/40 backdrop-blur-xl border border-border/30 p-6 shadow-2xl shadow-primary/5 relative overflow-hidden">
-                        
+
                         {/* Imagem de Luz sobreposta */}
-                        <div className="absolute top-0 left-0 right-0 h-[60%] z-30 pointer-events-none flex justify-center mix-blend-screen opacity-90">
+                        <div className="absolute top-0 left-0 right-0 h-[60%] z-30 pointer-events-none flex justify-center mix-blend-screen opacity-30">
                             <img src="/images/luz.png" alt="Luz" className="object-cover w-full h-full" />
                         </div>
 
