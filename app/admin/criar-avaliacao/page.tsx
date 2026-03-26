@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, type FormEvent, type ChangeEvent } from "react"
 import { useRouter } from "next/navigation"
-import { isAdminAuthenticated, getAdminCredentials } from "@/lib/admin-auth"
+import { isAdminAuthenticated, getAdminCredentials, getAdminName } from "@/lib/admin-auth"
 import { getFirebaseDb } from "@/lib/firebase-app"
 import { ref, set, get } from "firebase/database"
 import { gerarChavePeriodo } from "@/lib/firebase"
@@ -501,7 +501,10 @@ export default function CriarAvaliacaoPage() {
         try {
             const cpfDigits = cpfToDigits(cpf)
             const avaliacaoData = {
-                dados,
+                dados: {
+                    ...dados,
+                    avaliador: getAdminName() || "Avaliador",
+                },
                 tecnica,
                 movimentos,
                 expressao,

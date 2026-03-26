@@ -12,18 +12,19 @@ export async function POST(request: NextRequest) {
         const adminPassword = formData.get("adminPassword") as string | null
 
         // Validate admin credentials server-side
-        const envAdminCpf = process.env.ADMIN_CPF
+        const adminCpfEnv = process.env.ADMIN_CPFS || process.env.ADMIN_CPF
         const envAdminPassword = process.env.ADMIN_PASSWORD
 
-        if (!envAdminCpf || !envAdminPassword) {
+        if (!adminCpfEnv || !envAdminPassword) {
             return NextResponse.json(
                 { error: "Admin credentials not configured" },
                 { status: 500 }
             )
         }
 
+        const adminCpfs = adminCpfEnv.split(",").map(c => c.trim())
         const adminDigits = (adminCpf ?? "").replace(/\D/g, "")
-        if (adminDigits !== envAdminCpf || adminPassword !== envAdminPassword) {
+        if (!adminCpfs.includes(adminDigits) || adminPassword !== envAdminPassword) {
             return NextResponse.json(
                 { error: "Unauthorized" },
                 { status: 401 }

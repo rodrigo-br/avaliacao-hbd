@@ -53,11 +53,12 @@ export async function logoutAdmin(): Promise<void> {
 /**
  * Stores the admin session in sessionStorage.
  */
-export function setAdminSession(cpf?: string, password?: string): void {
+export function setAdminSession(cpf?: string, password?: string, name?: string): void {
     if (typeof window !== "undefined") {
         sessionStorage.setItem(ADMIN_SESSION_KEY, "true")
         if (cpf) sessionStorage.setItem("admin_cpf", cpf.replace(/\D/g, ""))
         if (password) sessionStorage.setItem("admin_password", password)
+        if (name) sessionStorage.setItem("admin_name", name)
     }
 }
 
@@ -77,6 +78,7 @@ export function clearAdminSession(): void {
         sessionStorage.removeItem(ADMIN_SESSION_KEY)
         sessionStorage.removeItem("admin_cpf")
         sessionStorage.removeItem("admin_password")
+        sessionStorage.removeItem("admin_name")
     }
 }
 
@@ -88,5 +90,22 @@ export function getAdminCredentials(): { cpf: string; password: string } {
     return {
         cpf: sessionStorage.getItem("admin_cpf") ?? "",
         password: sessionStorage.getItem("admin_password") ?? "",
+    }
+}
+
+/**
+ * Gets the admin display name from sessionStorage.
+ */
+export function getAdminName(): string {
+    if (typeof window === "undefined") return ""
+    return sessionStorage.getItem("admin_name") ?? ""
+}
+
+/**
+ * Sets/updates the admin display name in sessionStorage.
+ */
+export function setAdminName(name: string): void {
+    if (typeof window !== "undefined") {
+        sessionStorage.setItem("admin_name", name)
     }
 }

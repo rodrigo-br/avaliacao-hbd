@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { isAdminAuthenticated, logoutAdmin, getAdminCredentials } from "@/lib/admin-auth"
+import { isAdminAuthenticated, logoutAdmin, getAdminCredentials, getAdminName } from "@/lib/admin-auth"
 import { getFirebaseDb } from "@/lib/firebase-app"
 import { ref, get } from "firebase/database"
 import { calcularMedia, getAvaliacaoMaisRecente, type Avaliacao, type AvaliacoesDoAluno } from "@/lib/firebase"
@@ -214,6 +214,11 @@ export default function AdminDashboardPage() {
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                     Gerencie e visualize todas as avaliações
                                 </p>
+                                {getAdminName() && (
+                                    <p className="text-[10px] text-primary/70 mt-0.5">
+                                        Logado como <strong>{getAdminName()}</strong>
+                                    </p>
+                                )}
                             </div>
                         </div>
                         <button

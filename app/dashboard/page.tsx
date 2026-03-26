@@ -238,6 +238,8 @@ export default function DashboardPage() {
 
     // ── Ready ────────────────────────────────────────
 
+    if (!todasAvaliacoes) return null
+
     const avaliacao = todasAvaliacoes[periodoAtual]
     const isBranco = avaliacao.dados.nivel === "Branco"
 
@@ -350,7 +352,7 @@ export default function DashboardPage() {
                         <ActionButtons
                             feedback={feedbackData}
                             sugestoes={sugestoesData}
-                            professor={isBranco ? undefined : avaliacao.dados.professor}
+                            professor={isBranco ? undefined : (avaliacao.dados.avaliador || avaliacao.dados.professor)}
                             locked={isBranco}
                         />
                     </section>

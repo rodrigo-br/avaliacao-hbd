@@ -2,10 +2,10 @@
 
 import { useState, type FormEvent } from "react"
 import { useRouter } from "next/navigation"
-import { validateAdminAction } from "@/lib/admin-actions"
+import { validateAdminAction, saveAdminNameAction } from "@/lib/admin-actions"
 import { loginAdminFirebase, setAdminSession } from "@/lib/admin-auth"
 import { LogoIcon } from "@/components/logo-icon"
-import { Shield } from "lucide-react"
+import { Shield, UserCircle, Key } from "lucide-react"
 
 function formatCpf(value: string): string {
     const digits = value.replace(/\D/g, "").slice(0, 11)
@@ -17,10 +17,17 @@ function formatCpf(value: string): string {
 
 export default function AdminLoginPage() {
     const router = useRouter()
+    
+    // Step 1 state
     const [cpf, setCpf] = useState("")
     const [password, setPassword] = useState("")
-    const [error, setError] = useState("")
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState("")
+    
+    // Step 2 state (name prompt)
+    const [needsName, setNeedsName] = useState(false)
+    const [name, setName] = useState("")
+    const [savingName, setSavingName] = useState(false)
 
     async function handleLogin(e: FormEvent) {
         e.preventDefault()
@@ -34,8 +41,8 @@ export default function AdminLoginPage() {
         setError("")
 
         try {
-            // Validate on the server (credentials never leave the server)
-            const { valid } = await validateAdminAction(cpf, password)
+            // Validate credentials & fetch saved name
+            const { valid, name: savedName } = await validateAdminAction(cpf, password)
 
             if (!valid) {
                 setError("Credenciais inválidas.")
@@ -43,13 +50,48 @@ export default function AdminLoginPage() {
                 return
             }
 
-            // Authenticate with Firebase Auth so we can read data
-            await loginAdminFirebase(cpf, password)
-            setAdminSession(cpf, password)
-            router.push("/admin/dashboard")
+            if (savedName) {
+                // Name already exists, proceed to login directly
+                await loginAdminFirebase(cpf, password)
+                setAdminSession(cpf, password, savedName)
+                router.push("/admin/dashboard")
+            } else {
+                // No name stored, transition to Step 2
+                setNeedsName(true)
+                setLoading(false)
+            }
         } catch {
             setError("Erro ao autenticar. Tente novamente.")
             setLoading(false)
+        }
+    }
+
+    async function handleSaveName(e: FormEvent) {
+        e.preventDefault()
+        
+        if (!name.trim()) {
+            setError("O nome é obrigatório.")
+            return
+        }
+
+        setSavingName(true)
+        setError("")
+
+        try {
+            const { success, error: saveError } = await saveAdminNameAction(cpf, password, name)
+            if (!success) {
+                setError(saveError ?? "Erro ao salvar o nome.")
+                setSavingName(false)
+                return
+            }
+
+            // Successfully saved the name, finalize login
+            await loginAdminFirebase(cpf, password)
+            setAdminSession(cpf, password, name.trim())
+            router.push("/admin/dashboard")
+        } catch {
+            setError("Erro ao salvar nome. Tente novamente.")
+            setSavingName(false)
         }
     }
 
@@ -82,70 +124,138 @@ export default function AdminLoginPage() {
                         </div>
                     </div>
 
-                    {/* Form */}
-                    <form onSubmit={handleLogin} className="space-y-4">
-                        <div className="space-y-2">
-                            <label htmlFor="admin-cpf" className="text-sm font-medium text-foreground/80">
-                                CPF do Admin
-                            </label>
-                            <input
-                                id="admin-cpf"
-                                type="text"
-                                inputMode="numeric"
-                                autoComplete="off"
-                                placeholder="000.000.000-00"
-                                value={cpf}
-                                onChange={(e) => {
-                                    setCpf(formatCpf(e.target.value))
-                                    setError("")
+                    {!needsName ? (
+                        /* Step 1: CPF & Password Form */
+                        <form onSubmit={handleLogin} className="space-y-4 animate-fade-in">
+                            <div className="space-y-2">
+                                <label htmlFor="admin-cpf" className="text-sm font-medium text-foreground/80">
+                                    CPF do Admin
+                                </label>
+                                <input
+                                    id="admin-cpf"
+                                    type="text"
+                                    inputMode="numeric"
+                                    autoComplete="off"
+                                    placeholder="000.000.000-00"
+                                    value={cpf}
+                                    onChange={(e) => {
+                                        setCpf(formatCpf(e.target.value))
+                                        setError("")
+                                    }}
+                                    className={inputClass}
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label htmlFor="admin-password" className="text-sm font-medium text-foreground/80">
+                                    Senha
+                                </label>
+                                <input
+                                    id="admin-password"
+                                    type="password"
+                                    placeholder="Senha do administrador"
+                                    value={password}
+                                    onChange={(e) => {
+                                        setPassword(e.target.value)
+                                        setError("")
+                                    }}
+                                    className={inputClass}
+                                />
+                            </div>
+
+                            {error && <p className="text-xs text-red-400">{error}</p>}
+
+                            <button type="submit" disabled={loading} className={buttonClass}>
+                                {loading ? (
+                                    <span className="inline-flex items-center gap-2">
+                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                                        Autenticando...
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-2 justify-center">
+                                        <Shield className="w-4 h-4" />
+                                        Entrar como Admin
+                                    </span>
+                                )}
+                            </button>
+                        </form>
+                    ) : (
+                        /* Step 2: Ask for Name */
+                        <form onSubmit={handleSaveName} className="space-y-4 animate-fade-in">
+                            <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-4 mb-2">
+                                <p className="text-sm font-semibold text-orange-400 flex items-center gap-2 mb-1">
+                                    <Key className="w-4 h-4" /> Qual é o seu nome?
+                                </p>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    Bem-vindo! Parece que este é o seu primeiro acesso. 
+                                    Preencha o nome que aparecerá para os alunos em suas avaliações.
+                                    Você só precisará fazer isso uma vez.
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label htmlFor="admin-name" className="text-sm font-medium text-foreground/80">
+                                    Seu Nome (Avaliador)
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                        <UserCircle className="w-4 h-4 text-muted-foreground/40" />
+                                    </div>
+                                    <input
+                                        id="admin-name"
+                                        type="text"
+                                        placeholder="Ex: Prof. Rodrigo"
+                                        value={name}
+                                        onChange={(e) => {
+                                            setName(e.target.value)
+                                            setError("")
+                                        }}
+                                        className={`${inputClass} pl-10`}
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+
+                            {error && <p className="text-xs text-red-400">{error}</p>}
+
+                            <button type="submit" disabled={savingName} className={buttonClass}>
+                                {savingName ? (
+                                    <span className="inline-flex items-center gap-2">
+                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                                        Salvando...
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-2 justify-center">
+                                        <UserCircle className="w-4 h-4" />
+                                        Salvar e Entrar
+                                    </span>
+                                )}
+                            </button>
+                        </form>
+                    )}
+
+                    {/* Back to student area / restart login */}
+                    <div className="text-center pt-2">
+                        {needsName ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setNeedsName(false)
+                                    setPassword("")
                                 }}
-                                className={inputClass}
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <label htmlFor="admin-password" className="text-sm font-medium text-foreground/80">
-                                Senha
-                            </label>
-                            <input
-                                id="admin-password"
-                                type="password"
-                                placeholder="Senha do administrador"
-                                value={password}
-                                onChange={(e) => {
-                                    setPassword(e.target.value)
-                                    setError("")
-                                }}
-                                className={inputClass}
-                            />
-                        </div>
-
-                        {error && <p className="text-xs text-red-400">{error}</p>}
-
-                        <button type="submit" disabled={loading} className={buttonClass}>
-                            {loading ? (
-                                <span className="inline-flex items-center gap-2">
-                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
-                                    Autenticando...
-                                </span>
-                            ) : (
-                                <span className="inline-flex items-center gap-2 justify-center">
-                                    <Shield className="w-4 h-4" />
-                                    Entrar como Admin
-                                </span>
-                            )}
-                        </button>
-                    </form>
-
-                    {/* Back to student area */}
-                    <div className="text-center">
-                        <button
-                            type="button"
-                            onClick={() => router.push("/auth")}
-                            className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors"
-                        >
-                            ← Voltar para área do aluno
-                        </button>
+                                className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors"
+                            >
+                                ← Cancelar
+                            </button>
+                        ) : (
+                            <button
+                                type="button"
+                                onClick={() => router.push("/auth")}
+                                className="text-xs text-muted-foreground/60 hover:text-foreground transition-colors"
+                            >
+                                ← Voltar para área do aluno
+                            </button>
+                        )}
                     </div>
                 </div>
 

@@ -221,7 +221,7 @@ export default function AdminPreviewPage() {
                         <ActionButtons
                             feedback={avaliacao.feedback ?? []}
                             sugestoes={avaliacao.sugestoes ?? { observacoes: "", selecionadas: [] }}
-                            professor={avaliacao.dados.professor}
+                            professor={avaliacao.dados.avaliador || avaliacao.dados.professor}
                         />
                     </section>
                 </div>

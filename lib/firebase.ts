@@ -18,6 +18,7 @@ export interface DadosAluno {
     periodoAvaliado: string
     professor: string
     turma: string
+    avaliador?: string
 }
 
 export interface AtributoNota {
