@@ -7,9 +7,10 @@ import { User } from "lucide-react"
 interface AdminStudentAvatarProps {
     cpf: string
     nome: string
+    hasPicture?: boolean
 }
 
-export function AdminStudentAvatar({ cpf, nome }: AdminStudentAvatarProps) {
+export function AdminStudentAvatar({ cpf, nome, hasPicture }: AdminStudentAvatarProps) {
     const [fotoUrl, setFotoUrl] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [imgError, setImgError] = useState(false)
@@ -18,6 +19,10 @@ export function AdminStudentAvatar({ cpf, nome }: AdminStudentAvatarProps) {
         let mounted = true
         async function carregarFoto() {
             if (!cpf) {
+                if (mounted) setLoading(false)
+                return
+            }
+            if (hasPicture === false) {
                 if (mounted) setLoading(false)
                 return
             }

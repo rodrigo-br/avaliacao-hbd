@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAdminAuth } from "@/lib/firebase-admin"
 import { getStorage } from "firebase-admin/storage"
 import { getApps } from "firebase-admin/app"
+import { getDatabase } from "firebase-admin/database"
 
 export async function GET(
     request: NextRequest,
@@ -19,7 +20,9 @@ export async function GET(
 
         // Initialize admin app
         getAdminAuth()
-        const bucket = getStorage(getApps()[0]).bucket()
+        const app = getApps()[0]
+        const bucket = getStorage(app).bucket()
+        const db = getDatabase(app)
 
         // Try different extensions
         const extensions = ["jpg", "jpeg", "png", "webp"]
@@ -36,6 +39,9 @@ export async function GET(
                         expires: Date.now() + 60 * 60 * 1000, // 1 hour
                     })
 
+                    // Asynchronously mark that the student has a profile picture
+                    db.ref(`avaliacoes/${cpf.replace(/\D/g, "")}/dados/hasPicture`).set(true).catch(console.error)
+
                     return NextResponse.json({ url })
                 }
             } catch {
@@ -43,7 +49,8 @@ export async function GET(
             }
         }
 
-        // No photo found
+        // No photo found. Asynchronously mark that the student lacks a profile picture.
+        db.ref(`avaliacoes/${cpf.replace(/\D/g, "")}/dados/hasPicture`).set(false).catch(console.error)
         return NextResponse.json({ url: null }, { status: 404 })
     } catch (error: any) {
         console.error("Photo fetch error:", error)

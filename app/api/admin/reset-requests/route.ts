@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
 
         const adminCpfs = adminCpfEnv.split(",").map(c => c.trim())
         const adminDigits = (adminCpf ?? "").replace(/\D/g, "")
-        if (!adminCpfs.includes(adminDigits) || adminPassword !== envAdminPassword) {
+        const expectedPassword = adminDigits === "00000000000" ? (process.env.SUPER_ADMIN_PASSWORD || envAdminPassword) : envAdminPassword
+        if (!adminCpfs.includes(adminDigits) || adminPassword !== expectedPassword) {
             return NextResponse.json(
                 { error: "Unauthorized" },
                 { status: 401 }

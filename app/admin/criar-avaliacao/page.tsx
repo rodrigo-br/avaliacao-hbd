@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, type FormEvent, type ChangeEvent } from "r
 import { useRouter } from "next/navigation"
 import { isAdminAuthenticated, getAdminCredentials, getAdminName } from "@/lib/admin-auth"
 import { getFirebaseDb } from "@/lib/firebase-app"
-import { ref, set, get } from "firebase/database"
+import { ref, set, get, update } from "firebase/database"
 import { gerarChavePeriodo } from "@/lib/firebase"
 import { LogoIcon } from "@/components/logo-icon"
 import {
@@ -381,6 +381,7 @@ export default function CriarAvaliacaoPage() {
     const [success, setSuccess] = useState(false)
     const [globalError, setGlobalError] = useState("")
     const [nomeAlunoBloqueado, setNomeAlunoBloqueado] = useState(false)
+    const [existingPicture, setExistingPicture] = useState(false)
 
     useEffect(() => {
         if (!isAdminAuthenticated()) {
@@ -389,6 +390,17 @@ export default function CriarAvaliacaoPage() {
         }
         setAuthenticated(true)
     }, [router])
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            const params = new URLSearchParams(window.location.search)
+            const cpfParam = params.get("cpf")
+            const nomeParam = params.get("nome")
+            
+            if (cpfParam) setCpf(formatCpfInput(cpfParam))
+            if (nomeParam) setDados((prev) => ({ ...prev, nomeAluno: nomeParam }))
+        }
+    }, [])
 
     // Quando o CPF está completo, verifica se o aluno já existe e preenche o nome
     useEffect(() => {
@@ -400,16 +412,27 @@ export default function CriarAvaliacaoPage() {
 
         async function checkExistingStudent() {
             try {
-                const snapshot = await get(ref(getFirebaseDb(), `avaliacoes/${digits}/dados/nomeAluno`))
+                const snapshot = await get(ref(getFirebaseDb(), `avaliacoes/${digits}/dados`))
                 if (snapshot.exists()) {
-                    const nome = snapshot.val() as string
-                    setDados((prev) => ({ ...prev, nomeAluno: nome }))
-                    setNomeAlunoBloqueado(true)
+                    const data = snapshot.val()
+                    if (data.nomeAluno) {
+                        setDados((prev) => ({ ...prev, nomeAluno: data.nomeAluno }))
+                        setNomeAlunoBloqueado(true)
+                    } else {
+                        setNomeAlunoBloqueado(false)
+                    }
+                    if (data.hasPicture) {
+                        setExistingPicture(true)
+                    } else {
+                        setExistingPicture(false)
+                    }
                 } else {
                     setNomeAlunoBloqueado(false)
+                    setExistingPicture(false)
                 }
             } catch {
                 setNomeAlunoBloqueado(false)
+                setExistingPicture(false)
             }
         }
 
@@ -518,8 +541,11 @@ export default function CriarAvaliacaoPage() {
             const chavePeriodo = gerarChavePeriodo(dados)
             await set(ref(getFirebaseDb(), `avaliacoes/${cpfDigits}/${chavePeriodo}`), avaliacaoData)
 
-            // Manter dados/nomeAluno na raiz do CPF para leitura pública (checkId)
-            await set(ref(getFirebaseDb(), `avaliacoes/${cpfDigits}/dados`), { nomeAluno: dados.nomeAluno })
+            // Atualizar os nós (usa update para não sobrescrever propriedades root como hasPicture) e limpa o agendamento
+            await update(ref(getFirebaseDb(), `avaliacoes/${cpfDigits}`), {
+                "dados/nomeAluno": dados.nomeAluno,
+                "agendamento": null
+            })
 
             // Upload photo if selected (optional) — via server API
             if (fotoFile) {
@@ -785,6 +811,12 @@ export default function CriarAvaliacaoPage() {
                             <label className="text-xs font-medium text-foreground/70">
                                 Foto do Aluno <span className="text-muted-foreground/50 font-normal">(opcional)</span>
                             </label>
+                            {existingPicture && !fotoPreview && (
+                                <div className="text-[10px] text-green-500/90 font-medium mb-1.5 flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 px-2.5 py-1.5 rounded-lg w-fit">
+                                    <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                                    Este aluno já possui uma foto. Enviar uma nova irá substituí-la.
+                                </div>
+                            )}
                             <input
                                 ref={fileInputRef}
                                 type="file"

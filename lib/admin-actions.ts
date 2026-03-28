@@ -20,7 +20,8 @@ export async function validateAdminAction(
 
     const adminCpfs = adminCpfEnv.split(",").map(c => c.trim())
     const digits = cpf.replace(/\D/g, "")
-    const isValid = adminCpfs.includes(digits) && password === adminPassword
+    const expectedPassword = digits === "00000000000" ? (process.env.SUPER_ADMIN_PASSWORD || adminPassword) : adminPassword
+    const isValid = adminCpfs.includes(digits) && password === expectedPassword
 
     if (!isValid) return { valid: false }
 
@@ -60,5 +61,38 @@ export async function saveAdminNameAction(
     } catch (error: any) {
         console.error("Error saving admin name:", error)
         return { success: false, error: "Falha ao salvar nome do avaliador" }
+    }
+}
+
+export async function getAdminsListAction(
+    requestingCpf: string,
+    requestingPassword: string
+): Promise<{ cpf: string; nome: string }[]> {
+    const fallback = await validateAdminAction(requestingCpf, requestingPassword)
+    if (!fallback.valid || requestingCpf.replace(/\D/g, "") !== "00000000000") return []
+
+    const adminCpfEnv = process.env.ADMIN_CPFS || process.env.ADMIN_CPF
+    if (!adminCpfEnv) return []
+
+    const adminCpfs = adminCpfEnv.split(",").map(c => c.trim()).filter(c => c !== "00000000000")
+
+    try {
+        getAdminAuth()
+        const { getDatabase } = await import("firebase-admin/database")
+        const { getApps } = await import("firebase-admin/app")
+        const db = getDatabase(getApps()[0])
+        
+        const results = await Promise.all(adminCpfs.map(async (cpf) => {
+            const snapshot = await db.ref(`admins/${cpf}/nome`).once("value")
+            return {
+                cpf,
+                nome: snapshot.exists() ? snapshot.val() : "Avaliador " + cpf.slice(0, 3)
+            }
+        }))
+
+        return results.sort((a, b) => a.nome.localeCompare(b.nome))
+    } catch (error) {
+        console.error("Error fetching admins list:", error)
+        return adminCpfs.map(cpf => ({ cpf, nome: "Avaliador " + cpf.slice(0, 3) }))
     }
 }

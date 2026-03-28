@@ -19,6 +19,7 @@ export interface DadosAluno {
     professor: string
     turma: string
     avaliador?: string
+    hasPicture?: boolean
 }
 
 export interface AtributoNota {
