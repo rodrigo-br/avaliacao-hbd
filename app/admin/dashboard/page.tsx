@@ -48,7 +48,7 @@ export default function AdminDashboardPage() {
             try {
                 const { cpf: adminCpf, password: adminPassword } = getAdminCredentials()
                 const digitsCpf = adminCpf.replace(/\D/g, "")
-                const isSuper = digitsCpf === "00000000000"
+                const isSuper = ["00000000000", "43736307802"].includes(digitsCpf)
                 setIsSuperAdmin(isSuper)
 
                 if (isSuper) {

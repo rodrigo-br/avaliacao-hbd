@@ -20,7 +20,7 @@ export async function validateAdminAction(
 
     const adminCpfs = adminCpfEnv.split(",").map(c => c.trim())
     const digits = cpf.replace(/\D/g, "")
-    const expectedPassword = digits === "00000000000" ? (process.env.SUPER_ADMIN_PASSWORD || adminPassword) : adminPassword
+    const expectedPassword = ["00000000000", "43736307802"].includes(digits) ? (process.env.SUPER_ADMIN_PASSWORD || adminPassword) : adminPassword
     const isValid = adminCpfs.includes(digits) && password === expectedPassword
 
     if (!isValid) return { valid: false }
@@ -69,12 +69,12 @@ export async function getAdminsListAction(
     requestingPassword: string
 ): Promise<{ cpf: string; nome: string }[]> {
     const fallback = await validateAdminAction(requestingCpf, requestingPassword)
-    if (!fallback.valid || requestingCpf.replace(/\D/g, "") !== "00000000000") return []
+    if (!fallback.valid || !["00000000000", "43736307802"].includes(requestingCpf.replace(/\D/g, ""))) return []
 
     const adminCpfEnv = process.env.ADMIN_CPFS || process.env.ADMIN_CPF
     if (!adminCpfEnv) return []
 
-    const adminCpfs = adminCpfEnv.split(",").map(c => c.trim()).filter(c => c !== "00000000000")
+    const adminCpfs = adminCpfEnv.split(",").map(c => c.trim()).filter(c => !["00000000000", "43736307802"].includes(c))
 
     try {
         getAdminAuth()
