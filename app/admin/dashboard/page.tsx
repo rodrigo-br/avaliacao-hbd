@@ -37,6 +37,33 @@ export default function AdminDashboardPage() {
     const [expandedAdmin, setExpandedAdmin] = useState<string | null>(null)
     const [updatingStatus, setUpdatingStatus] = useState<string | null>(null) // CPF of student being updated
 
+    function buildAvaliacoesList(data: Record<string, any>): AvaliacaoComCpf[] {
+        const list: AvaliacaoComCpf[] = []
+
+        for (const [cpf, content] of Object.entries(data)) {
+            const resultado = getAvaliacaoMaisRecente(content)
+            const dados = content.dados || resultado?.avaliacao?.dados || {}
+            const agendamento = content.agendamento || {}
+
+            // Apenas mostre se tiver nomeAluno ou avaliação existente
+            if (dados.nomeAluno || resultado) {
+                list.push({
+                    cpf,
+                    avaliacao: resultado?.avaliacao || ({ dados } as Avaliacao),
+                    totalPeriodos: Object.keys(content).filter((k) => /^\d{4}-\d{2}$/.test(k)).length,
+                    agendado: !!agendamento.agendado,
+                    avaliadorId: agendamento.avaliador || null,
+                })
+            }
+        }
+
+        list.sort((a, b) =>
+            (a.avaliacao.dados?.nomeAluno ?? "").localeCompare(b.avaliacao.dados?.nomeAluno ?? "")
+        )
+
+        return list
+    }
+
     useEffect(() => {
         if (!isAdminAuthenticated()) {
             router.replace("/admin")
@@ -56,32 +83,36 @@ export default function AdminDashboardPage() {
                     setAdmins(adminsList)
                 }
 
-                // Load evaluations
-                const snapshot = await get(ref(getFirebaseDb(), "avaliacoes"))
-                if (snapshot.exists()) {
-                    const data = snapshot.val() as Record<string, any>
-                    const list: AvaliacaoComCpf[] = []
-                    
-                    for (const [cpf, content] of Object.entries(data)) {
-                        const resultado = getAvaliacaoMaisRecente(content)
-                        const dados = content.dados || resultado?.avaliacao?.dados || {}
-                        const agendamento = content.agendamento || {}
-
-                        // Apenas mostre se tiver nomeAluno ou avaliação existente
-                        if (dados.nomeAluno || resultado) {
-                            list.push({
-                                cpf,
-                                avaliacao: resultado?.avaliacao || ({ dados } as Avaliacao),
-                                totalPeriodos: Object.keys(content).filter((k) => /^\d{4}-\d{2}$/.test(k)).length,
-                                agendado: !!agendamento.agendado,
-                                avaliadorId: agendamento.avaliador || null,
-                            })
-                        }
+                // Load evaluations (client SDK first, then API fallback on permission denied)
+                try {
+                    const snapshot = await get(ref(getFirebaseDb(), "avaliacoes"))
+                    if (snapshot.exists()) {
+                        const data = snapshot.val() as Record<string, any>
+                        setAvaliacoes(buildAvaliacoesList(data))
+                    } else {
+                        setAvaliacoes([])
                     }
-                    list.sort((a, b) =>
-                        (a.avaliacao.dados?.nomeAluno ?? "").localeCompare(b.avaliacao.dados?.nomeAluno ?? "")
-                    )
-                    setAvaliacoes(list)
+                } catch (error: any) {
+                    const isPermissionDenied =
+                        error?.code === "PERMISSION_DENIED" ||
+                        error?.code === "permission-denied" ||
+                        String(error?.message ?? "").toLowerCase().includes("permission denied")
+
+                    if (!isPermissionDenied) throw error
+
+                    const fallbackRes = await fetch("/api/admin/evaluations", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ adminCpf, adminPassword }),
+                    })
+
+                    if (!fallbackRes.ok) {
+                        throw new Error("Falha ao carregar avaliações via API de admin.")
+                    }
+
+                    const fallbackData = await fallbackRes.json()
+                    const evaluations = (fallbackData?.evaluations ?? {}) as Record<string, any>
+                    setAvaliacoes(buildAvaliacoesList(evaluations))
                 }
 
                 // Load reset requests via server API
@@ -246,6 +277,9 @@ export default function AdminDashboardPage() {
         }
     }
 
+    const totalAgendadas = avaliacoes.filter((a) => a.agendado).length
+    const hasAgendadasPendentes = totalAgendadas > 0
+
     if (!authenticated) return null
 
     if (loading) {
@@ -317,9 +351,25 @@ export default function AdminDashboardPage() {
                         </button>
                         <button
                             onClick={() => setActiveTab("agendadas")}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shrink-0 ${activeTab === "agendadas" ? "bg-primary text-primary-foreground shadow-sm" : "hover:bg-secondary/50 text-muted-foreground"}`}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all shrink-0 ${activeTab === "agendadas"
+                                ? "bg-primary text-primary-foreground shadow-sm"
+                                : hasAgendadasPendentes
+                                    ? "hover:bg-secondary/50 text-orange-400"
+                                    : "hover:bg-secondary/50 text-muted-foreground"
+                                }`}
                         >
                             <ClipboardList className="w-4 h-4" /> Avaliações Agendadas
+                            <span
+                                className={`inline-flex items-center justify-center min-w-[1.35rem] h-5 px-1.5 rounded-full text-[10px] font-bold border ${activeTab === "agendadas"
+                                    ? "bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30"
+                                    : hasAgendadasPendentes
+                                        ? "bg-orange-500/15 text-orange-400 border-orange-500/30"
+                                        : "bg-green-500/15 text-green-400 border-green-500/30"
+                                    }`}
+                                title={hasAgendadasPendentes ? `${totalAgendadas} avaliação(ões) agendada(s)` : "Nenhuma avaliação agendada"}
+                            >
+                                {hasAgendadasPendentes ? totalAgendadas : "0"}
+                            </span>
                         </button>
                         <button
                             onClick={() => setActiveTab("avaliadores")}
