@@ -531,6 +531,12 @@ export default function AdminDashboardPage() {
                                                                 <Eye className="w-3.5 h-3.5" /> Preview
                                                             </button>
                                                         )}
+                                                        <button
+                                                            onClick={() => handleStartEvaluation(item.cpf, dados?.nomeAluno ?? "Sem nome")}
+                                                            className="flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-primary to-orange-500 px-3 py-2 text-xs font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
+                                                        >
+                                                            <PenTool className="w-3.5 h-3.5" /> Avaliar
+                                                        </button>
                                                     </>
                                                 ) : (
                                                     /* Regular Admin sees "Iniciar Avaliação" */
