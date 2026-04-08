@@ -563,7 +563,7 @@ export default function AdminDashboardPage() {
                                             </div>
 
                                             {/* Bottom / Right: Action Buttons */}
-                                            <div className="flex items-center gap-2 sm:shrink-0 border-t border-border/20 pt-2 sm:border-0 sm:pt-0">
+                                            <div className="flex flex-wrap items-center justify-end gap-2 sm:shrink-0 border-t border-border/20 pt-2 sm:border-0 sm:pt-0">
                                                 {/* Super Admin sees "Reset/Preview" */}
                                                 {isSuperAdmin ? (
                                                     <>
@@ -590,12 +590,22 @@ export default function AdminDashboardPage() {
                                                     </>
                                                 ) : (
                                                     /* Regular Admin sees "Iniciar Avaliação" */
-                                                    <button
-                                                        onClick={() => handleStartEvaluation(item.cpf, dados?.nomeAluno ?? "Sem nome")}
-                                                        className="flex flex-1 sm:flex-none w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-orange-500 px-5 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
-                                                    >
-                                                        <PenTool className="w-4 h-4" /> INICIAR AVALIAÇÃO
-                                                    </button>
+                                                    <>
+                                                        {item.totalPeriodos > 0 && (
+                                                            <button
+                                                                onClick={() => handlePreview(item.cpf)}
+                                                                className="flex items-center justify-center gap-1.5 rounded-xl bg-primary/10 border border-primary/20 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/20 hover:scale-105 transition-all"
+                                                            >
+                                                                <Eye className="w-3.5 h-3.5" /> Preview
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleStartEvaluation(item.cpf, dados?.nomeAluno ?? "Sem nome")}
+                                                            className="flex flex-1 sm:flex-none w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-orange-500 px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+                                                        >
+                                                            <PenTool className="w-4 h-4" /> INICIAR AVALIAÇÃO
+                                                        </button>
+                                                    </>
                                                 )}
                                             </div>
                                         </div>
